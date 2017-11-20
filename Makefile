@@ -68,4 +68,4 @@ build: deps format-go-code
 .PHONY: run
 ## Run fabric8-toggles-service.
 run: build
-	bin/$(BINARY) --config config.yaml --printConfig
+	bin/$(BINARY) --config config.yaml

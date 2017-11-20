@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"github.com/fabric8-services/fabric8-toggles-service/configuration"
-	"github.com/fabric8-services/fabric8-toggles-service/log"
+	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"os"
 )
 
@@ -41,7 +41,6 @@ func main() {
 	}
 
 	if printConfig {
-		config.Debug()
 		os.Exit(0)
 	}
 

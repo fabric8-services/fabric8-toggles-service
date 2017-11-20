@@ -1,8 +1,46 @@
-hash: 1944f0d4bdad48760fd342b630d82a56a1697321303128faecc82efe99c28921
-updated: 2017-11-20T11:43:14.288174843+01:00
+hash: 37537b91d3dd9beaaabc14577f092a320f0ac3d3fe931566be5979745f6f7ca1
+updated: 2017-11-20T15:37:45.005011981+01:00
 imports:
+- name: github.com/armon/go-metrics
+  version: 9a4b6e10bed6220a1665955aa2b75afc91eb10b3
+- name: github.com/dgrijalva/jwt-go
+  version: dbeaa9332f19a944acb5736b4456cfcc02140e29
+- name: github.com/dimfeld/httptreemux
+  version: 13dde8a00d96b369e7398490fd8a3af9ca114b84
+- name: github.com/fabric8-services/fabric8-wit
+  version: ed49dd4d0678a97d13ba469efbd5cdea2e5dbe67
+  subpackages:
+  - configuration
+  - errors
+  - jsonapi
+  - log
+  - resource
+  - rest
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
+- name: github.com/goadesign/goa
+  version: 5646a430cdeb66983d5ace3384e0a667c185abc7
+  vcs: git
+  subpackages:
+  - client
+  - cors
+  - design
+  - design/apidsl
+  - goagen
+  - goagen/codegen
+  - goagen/gen_app
+  - goagen/gen_controller
+  - goagen/utils
+  - goatest
+  - middleware
+  - middleware/security/jwt
+  - uuid
+- name: github.com/hashicorp/go-immutable-radix
+  version: 8aac2701530899b64bdea735a1de8da899815220
+- name: github.com/hashicorp/golang-lru
+  version: 0a025b7e63adc15a622f29b0b2c4c3848243bbf6
+  subpackages:
+  - simplelru
 - name: github.com/hashicorp/hcl
   version: 37ab263305aaeb501a60eb16863e808d426e37f2
   subpackages:
@@ -24,6 +62,8 @@ imports:
   version: 13d49d4606eb801b8f01ae542b4afc4c6ee3d84a
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/satori/go.uuid
+  version: b061729afc07e77a8aa4fad0a2fd840958f1942a
 - name: github.com/sirupsen/logrus
   version: c078b1e43f58d563c74cebe63c85789e76ddb627
 - name: github.com/spf13/afero
@@ -38,6 +78,10 @@ imports:
   version: 5ccb023bc27df288a957c5e994cd44fd19619465
 - name: github.com/spf13/viper
   version: 651d9d916abc3c3d6a91a12549495caba5edffd2
+- name: golang.org/x/net
+  version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
+  subpackages:
+  - websocket
 - name: golang.org/x/sys
   version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
   subpackages:
