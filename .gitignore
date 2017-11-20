@@ -1,14 +1,89 @@
-# Binaries for programs and plugins
-*.exe
-*.dll
+### Intellij ###
+.idea/
+*.iws
+*.iml
+/out/
+.idea_modules/
+atlassian-ide-plugin.xml
+
+### Eclipse ###
+.metadata
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# Eclipse Core
+.project
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# Code Recommenders
+.recommenders/
+
+
+### VisualStudioCode ###
+.vscode
+
+### Go ###
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
 *.so
-*.dylib
 
-# Test binary, build with `go test -c`
+# Folders
+_obj
+_test
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.exe
 *.test
+*.prof
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# Fabric8-wit specific artifacts
+/debug
+**/debug.test
 
-# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
-.glide/
+# Fabric8-wit binaries
+bin/
+
+# Glide package manager
+.glide
+vendor/
+
+# Generated assets
+app/
+assets/js/
+bindata_assetfs.go
+client/
+swagger/
+tool/cli/
+migration/sqlbindata.go
+migration/sqlbindata_test.go
+account/tenant
+auth/authservice
+
+# Ignore artifacts directory
+bin/
+
+.DS_Store

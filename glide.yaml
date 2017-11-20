@@ -1,0 +1,8 @@
+package: github.com/fabric8-services/fabric8-toggles-service
+homepage: https://github.com/fabric8-services/fabric8-toggles-service
+license: Apache-2.0
+import:
+- package: github.com/spf13/viper
+- package: github.com/sirupsen/logrus
+- package: github.com/pkg/errors
+  version: ^0.8.0
