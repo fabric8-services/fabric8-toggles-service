@@ -1,0 +1,38 @@
+= Fabric8 toggles service
+
+The fabric8-toggles-service is the client service to run with the link:https://github.com/fabric8-services/fabric8-toggles/[fabric8-toggles] server.
+It provides an easy way to define features as internal, experimental, beta or released from a UI application.
+You can see usage of the service in
+
+== Building from source [[building]]
+
+The following guide is mainly targeted towards a Linux or Mac OSX development
+machine.
+
+* Install:
+** `go` (>= v1.8)
+** `git`
+** `make`
+** `glide`: Running `make build` will install glide (if not already there).
+
+
+* Get the code
+
+----
+$ git clone https://github.com/fabric8-services/fabric8-toggles-services $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
+----
+
+* Build
+
+Like most other projects, this one depends on various other projects that need
+to be downloaded. We also generate some code from design files that shall make it into our
+final artifacts.
+
+To fetch the dependencies, generate code and finally build the project you can
+type `make build` in a freshly clone repository of this project.
+
+----
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
+$ make build
+----
+
