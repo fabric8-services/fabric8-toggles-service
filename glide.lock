@@ -1,10 +1,12 @@
-hash: 37537b91d3dd9beaaabc14577f092a320f0ac3d3fe931566be5979745f6f7ca1
-updated: 2017-11-20T15:37:45.005011981+01:00
+hash: 1029c3614100f9223d68e36af340ca90f6382c5e9ed3a75e64f50b48e99a566f
+updated: 2017-11-21T16:30:00.93750585+01:00
 imports:
 - name: github.com/armon/go-metrics
   version: 9a4b6e10bed6220a1665955aa2b75afc91eb10b3
 - name: github.com/dgrijalva/jwt-go
   version: dbeaa9332f19a944acb5736b4456cfcc02140e29
+- name: github.com/dimfeld/httppath
+  version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
   version: 13dde8a00d96b369e7398490fd8a3af9ca114b84
 - name: github.com/fabric8-services/fabric8-wit
@@ -12,9 +14,7 @@ imports:
   subpackages:
   - configuration
   - errors
-  - jsonapi
   - log
-  - resource
   - rest
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
@@ -26,6 +26,7 @@ imports:
   - cors
   - design
   - design/apidsl
+  - dslengine
   - goagen
   - goagen/codegen
   - goagen/gen_app
@@ -54,6 +55,8 @@ imports:
   - json/token
 - name: github.com/magiconair/properties
   version: be5ece7dd465ab0765a9682137865547526d1dfb
+- name: github.com/manveru/faker
+  version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
 - name: github.com/mitchellh/mapstructure
   version: 5a0325d7fafaac12dda6e7fb8bd222ec1b69875e
 - name: github.com/pelletier/go-buffruneio
@@ -72,12 +75,16 @@ imports:
   - mem
 - name: github.com/spf13/cast
   version: 24b6558033ffe202bf42f0f3b870dcc798dd2ba8
+- name: github.com/spf13/cobra
+  version: 9495bc009a56819bdb0ddbc1a373e29c140bc674
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
   version: 5ccb023bc27df288a957c5e994cd44fd19619465
 - name: github.com/spf13/viper
   version: 651d9d916abc3c3d6a91a12549495caba5edffd2
+- name: github.com/zach-klippenstein/goregen
+  version: 795b5e3961ea1912fde60af417ad85e86acc0d6a
 - name: golang.org/x/net
   version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
   subpackages:

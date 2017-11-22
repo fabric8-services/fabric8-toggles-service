@@ -9,3 +9,19 @@ import:
   subpackages:
     - log
     - errors
+- package: github.com/goadesign/goa
+  version: ^1.3.0
+  vcs: git
+  subpackages:
+  - client
+  - cors
+  - design
+  - design/apidsl
+  - goagen
+  - goagen/codegen
+  - goagen/gen_app
+  - goagen/gen_controller
+  - goagen/utils
+  - goatest
+  - middleware
+- package: github.com/spf13/cobra

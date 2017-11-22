@@ -10,14 +10,12 @@ import (
 
 const (
 	defaultLogLevel   = "info"
-	defaultWitURL     = "https://api.prod-preview.openshift.io/api/"
 	defaultTogglesURL = "http://f8toggles/api"
 )
 
 const (
 	// Constants for viper variable names. Will be used to set
 	// default values as well as to get each value
-
 	varHTTPAddress                    = "http.address"
 	varDeveloperModeEnabled           = "developer.mode.enabled"
 	varTogglesURL                     = "toggles.url"
