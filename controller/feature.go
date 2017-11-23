@@ -2,9 +2,9 @@ package controller
 
 import (
 	"github.com/fabric8-services/fabric8-toggles-service/app"
+	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
-	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
 )
 
 // FeatureController implements the feature resource.

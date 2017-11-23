@@ -2,7 +2,7 @@ package configuration
 
 import (
 	"fmt"
-	"github.com/fabric8-services/fabric8-wit/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 	"strings"

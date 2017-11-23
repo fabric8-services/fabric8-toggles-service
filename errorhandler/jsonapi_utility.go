@@ -7,7 +7,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/errors"
-	//"github.com/fabric8-services/fabric8-wit/log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -36,7 +36,7 @@ func ErrorToJSONAPIError(ctx context.Context, err error) (app.JSONAPIError, int)
 	var title, code string
 	var statusCode int
 	var id *string
-	//log.Error(ctx, map[string]interface{}{"err": cause, "error_message": cause.Error()}, "an error occurred in our api")
+	log.Error(ctx, map[string]interface{}{"err": cause, "error_message": cause.Error()}, "an error occurred in our api")
 	switch cause.(type) {
 	case errors.NotFoundError:
 		code = ErrorCodeNotFound

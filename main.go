@@ -6,12 +6,13 @@ import (
 	"github.com/fabric8-services/fabric8-toggles-service/configuration"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
 	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
+	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -24,22 +25,34 @@ func main() {
 		}, "failed to setup the configuration")
 	}
 
-	// Initialized developer mode flag for the logger
-	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
 	fmt.Printf("%s", config)
 
 	// Create service
 	service := goa.New("feature")
 
+	// Initialize log
+	level, err := log.ParseLevel(config.GetLogLevel())
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to setup the configuration")
+	}
+	logger := log.Logger{
+		Out:       os.Stderr,
+		Formatter: new(log.TextFormatter),
+		Hooks:     make(log.LevelHooks),
+		Level:     level,
+	}
+	service.WithLogger(goalogrus.New(&logger))
+
 	// Mount middleware
-	service.WithLogger(goalogrus.New(log.Logger()))
 	service.Use(middleware.RequestID())
 	service.Use(gzip.Middleware(9))
 	service.Use(errorhandler.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
 	//service.Use(witmiddleware.TokenContext(publicKeys, nil, app.NewJWTSecurity()))
-	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
+	//service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 	//app.UseJWTMiddleware(service, goajwt.New(publicKeys, nil, app.NewJWTSecurity()))
 
 	// Mount "features" controller
