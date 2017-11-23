@@ -3,6 +3,7 @@ homepage: https://github.com/fabric8-services/fabric8-toggles-service
 license: Apache-2.0
 import:
 - package: github.com/spf13/viper
+- package: github.com/spf13/cobra
 - package: gopkg.in/yaml.v2
 - package: github.com/fabric8-services/fabric8-wit
   version: ed49dd4d0678a97d13ba469efbd5cdea2e5dbe67
@@ -26,4 +27,14 @@ import:
   - goagen/utils
   - goatest
   - middleware
-- package: github.com/spf13/cobra
+  - middleware/security/jwt
+- package: github.com/fabric8-services/fabric8-auth
+  version: 26e19df61b885a92774632f23bb5590c5f768a31
+  subpackages:
+  - configuration
+  - design
+  - errors
+  - log
+  - login/tokencontext
+  - rest
+  - token

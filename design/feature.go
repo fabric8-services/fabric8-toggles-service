@@ -122,13 +122,10 @@ var _ = a.Resource("feature", func() {
 	a.BasePath("/api/features")
 
 	a.Action("show", func() {
-		//a.Security("jwt")
+		a.Security("jwt")
 		a.Routing(
 			a.GET("/:id"),
 		)
-		//a.Params(func() {
-		//	a.Param("id", d.String, "id")
-		//})
 		a.Description("Show feature details.")
 		a.Response(d.OK, feature)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -147,7 +144,7 @@ var featureList = JSONList(
 var _ = a.Resource("features", func() {
 	a.BasePath("/api/features")
 	a.Action("list", func() {
-		//a.Security("jwt")
+		a.Security("jwt")
 		a.Routing(
 			a.GET(""),
 		)

@@ -5,12 +5,16 @@ import (
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/configuration"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
+	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"net/http"
 )
 
@@ -37,10 +41,22 @@ func main() {
 	service.Use(gzip.Middleware(9))
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
+	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
 	//service.Use(witmiddleware.TokenContext(publicKeys, nil, app.NewJWTSecurity()))
-	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 	//app.UseJWTMiddleware(service, goajwt.New(publicKeys, nil, app.NewJWTSecurity()))
+
+	tokenManager, err := token.NewManager(config)
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to create token manager")
+	}
+	// Middleware that extracts and stores the token in the context
+	jwtMiddlewareTokenContext := witmiddleware.TokenContext(tokenManager.PublicKeys(), nil, app.NewJWTSecurity())
+	service.Use(jwtMiddlewareTokenContext)
+	service.Use(login.InjectTokenManager(tokenManager))
+	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 
 	// Mount "features" controller
 	featuresCtrl := controller.NewFeaturesController(service)

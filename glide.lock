@@ -16,6 +16,16 @@ imports:
   - errors
   - log
   - rest
+- name: github.com/fabric8-services/fabric8-auth
+  version: da575b14ac9ceb113f18f1c1cab75be256460d64
+  subpackages:
+  - configuration
+  - design
+  - errors
+  - log
+  - login/tokencontext
+  - rest
+  - token
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/goadesign/goa
