@@ -61,31 +61,6 @@ var JSONAPIErrors = a.MediaType("application/vnd.jsonapierrors+json", func() {
 	})
 })
 
-/* End of TODO */
-
-var feature = a.Type("Feature", func() {
-	a.Description(`JSONAPI for the feature object. See also http://jsonapi.org/format/#document-resource-object`)
-	a.Attribute("id", d.UUID, "Id of feature", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
-	})
-	a.Attribute("attributes", featureAttributes)
-	a.Attribute("links", genericLinks)
-	a.Required("id", "attributes", "links")
-})
-
-var featureAttributes = a.Type("FeatureAttributes", func() {
-	a.Description(`JSONAPI store for all the "attributes" of a Feature. See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("name", d.String, "The feature name", func() {
-		a.Example("Name of the feature")
-	})
-	a.Attribute("description", d.String, "The feature name", func() {
-		a.Example("Description of the feature")
-	})
-	a.Attribute("enabled", d.Boolean, "User profile type", func() {
-		a.Example(true)
-	})
-})
-
 // JSONList creates a UserTypeDefinition
 func JSONList(name, description string, data *d.UserTypeDefinition, links *d.UserTypeDefinition, meta *d.UserTypeDefinition) *d.MediaTypeDefinition {
 	return a.MediaType("application/vnd."+strings.ToLower(name)+"list+json", func() {
@@ -114,47 +89,46 @@ func JSONList(name, description string, data *d.UserTypeDefinition, links *d.Use
 			a.Required("data")
 		})
 	})
-
 }
 
-// genericLinks defines generic relations links
-var genericLinks = a.Type("GenericLinks", func() {
-	a.Attribute("self", d.String)
-	a.Attribute("related", d.String)
-	a.Attribute("meta", a.HashOf(d.String, d.Any))
-})
+/* End of TODO */
 
-var strategy = a.Type("Strategy", func() {
-	a.Description(`JSONAPI for the strategy object. See also http://jsonapi.org/format/#document-resource-object`)
-	a.Attribute("id", d.UUID, "Id of strategy", func() {
+var feature = a.Type("Feature", func() {
+	a.Description(`JSONAPI for the feature object. See also http://jsonapi.org/format/#document-resource-object`)
+	a.Attribute("id", d.UUID, "Id of feature", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
-	a.Attribute("attributes", strategyAttributes)
+	a.Attribute("attributes", featureAttributes)
 	a.Required("id", "attributes")
 })
 
-var strategyAttributes = a.Type("StrategyAttributes", func() {
-	a.Description(`JSONAPI store for all the "attributes" of a Strategy. See also see http://jsonapi.org/format/#document-resource-object-attributes`)
+var featureAttributes = a.Type("FeatureAttributes", func() {
+	a.Description(`JSONAPI store for all the "attributes" of a Feature. See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("name", d.String, "The feature name", func() {
-		a.Example("Name of the strategy")
+		a.Example("Name of the feature")
 	})
 	a.Attribute("description", d.String, "The feature name", func() {
-		a.Example("Description of the strategy")
+		a.Example("Description of the feature")
 	})
-	a.Attribute("groupId", d.String, "User profile type", func() {
-		a.Example("internal")
+	a.Attribute("enabled", d.Boolean, "User profile type", func() {
+		a.Example(true)
+	})
+	a.Attribute("groupId", d.String, "The feature name", func() {
+		a.Example("Id/name of the group, loosely coupled to user claim in auth token")
 	})
 })
 
 var _ = a.Resource("feature", func() {
-	a.BasePath("/api/feature")
+	a.BasePath("/api/features")
 
 	a.Action("show", func() {
 		//a.Security("jwt")
 		a.Routing(
-			a.GET(":featureID"),
+			a.GET("/:id"),
 		)
-
+		//a.Params(func() {
+		//	a.Param("id", d.String, "id")
+		//})
 		a.Description("Show feature details.")
 		a.Response(d.OK, feature)
 		a.Response(d.BadRequest, JSONAPIErrors)

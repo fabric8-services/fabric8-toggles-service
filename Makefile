@@ -67,7 +67,6 @@ CLEAN_TARGETS += clean-deps
 ## clean build dependencies.
 clean-deps:
 	rm -rf $(VENDOR_DIR)
-	rm -rf glide.lock
 
 CLEAN_TARGETS += clean-generated
 .PHONY: clean-generated

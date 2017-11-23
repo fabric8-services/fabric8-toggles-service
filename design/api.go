@@ -36,12 +36,12 @@ var _ = a.API("feature", func() {
 		a.ContentType("application/vnd.api+json")
 	})
 
-	a.Trait("conditional", func() {
-		a.Headers(func() {
-			a.Header("If-Modified-Since", d.String)
-			a.Header("If-None-Match", d.String)
-		})
-	})
+	//a.Trait("conditional", func() {
+	//	a.Headers(func() {
+	//		a.Header("If-Modified-Since", d.String)
+	//		a.Header("If-None-Match", d.String)
+	//	})
+	//})
 
 	//a.JWTSecurity("jwt", func() {
 	//	a.Description("JWT Token Auth")

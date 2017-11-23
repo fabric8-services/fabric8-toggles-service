@@ -46,6 +46,10 @@ func main() {
 	featuresCtrl := controller.NewFeaturesController(service)
 	app.MountFeaturesController(service, featuresCtrl)
 
+	// Mount "feature" controller
+	featureCtrl := controller.NewFeatureController(service)
+	app.MountFeatureController(service, featureCtrl)
+
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.Handle("/", service.Mux)
 
