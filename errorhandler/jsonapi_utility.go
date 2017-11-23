@@ -7,7 +7,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/fabric8-services/fabric8-wit/log"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"

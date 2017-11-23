@@ -6,13 +6,14 @@ import (
 	"github.com/fabric8-services/fabric8-toggles-service/configuration"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
 	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
+	"github.com/fabric8-services/fabric8-toggles-service/token"
+	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
-	log "github.com/sirupsen/logrus"
 	"net/http"
-	"os"
 )
 
 func main() {
@@ -31,19 +32,9 @@ func main() {
 	service := goa.New("feature")
 
 	// Initialize log
-	level, err := log.ParseLevel(config.GetLogLevel())
-	if err != nil {
-		log.Panic(nil, map[string]interface{}{
-			"err": err,
-		}, "failed to setup the configuration")
-	}
-	logger := log.Logger{
-		Out:       os.Stderr,
-		Formatter: new(log.TextFormatter),
-		Hooks:     make(log.LevelHooks),
-		Level:     level,
-	}
-	service.WithLogger(goalogrus.New(&logger))
+	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
+
+	service.WithLogger(goalogrus.New(log.Logger()))
 
 	// Mount middleware
 	service.Use(middleware.RequestID())
@@ -51,9 +42,17 @@ func main() {
 	service.Use(errorhandler.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
-	//service.Use(witmiddleware.TokenContext(publicKeys, nil, app.NewJWTSecurity()))
+	tokenManager, err := token.NewManager(config)
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to create token manager")
+	}
+	// Middleware that extracts and stores the token in the context
+	jwtMiddlewareTokenContext := witmiddleware.TokenContext(tokenManager.PublicKeys(), nil, app.NewJWTSecurity())
+	service.Use(jwtMiddlewareTokenContext)
+
 	//service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
-	//app.UseJWTMiddleware(service, goajwt.New(publicKeys, nil, app.NewJWTSecurity()))
 
 	// Mount "features" controller
 	featuresCtrl := controller.NewFeaturesController(service)
