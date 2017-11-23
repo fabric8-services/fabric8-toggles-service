@@ -5,7 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/configuration"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
-	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/logging/logrus"
@@ -35,7 +35,7 @@ func main() {
 	service.WithLogger(goalogrus.New(log.Logger()))
 	service.Use(middleware.RequestID())
 	service.Use(gzip.Middleware(9))
-	service.Use(jsonapi.ErrorHandler(service, true))
+	service.Use(errorhandler.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
 	//service.Use(witmiddleware.TokenContext(publicKeys, nil, app.NewJWTSecurity()))

@@ -2,9 +2,9 @@ package controller
 
 import (
 	"github.com/fabric8-services/fabric8-toggles-service/app"
-	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
+	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
 )
 
 // FeatureController implements the feature resource.
@@ -22,7 +22,7 @@ func (c *FeatureController) Show(ctx *app.ShowFeatureContext) error {
 	// FeatureController_Show: start_implement
 	featureID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errorhandler.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 	// TODO call unleash SDK to retrieve features/strategy
 	descriptionFeature := "Description of the feature"

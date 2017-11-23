@@ -4,6 +4,8 @@ license: Apache-2.0
 import:
 - package: github.com/spf13/viper
 - package: gopkg.in/yaml.v2
+- package: github.com/pkg/errors
+  version: ^0.8.0
 - package: github.com/fabric8-services/fabric8-wit
   version: ed49dd4d0678a97d13ba469efbd5cdea2e5dbe67
   subpackages:

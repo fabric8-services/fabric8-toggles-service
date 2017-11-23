@@ -1,12 +1,12 @@
-hash: 1029c3614100f9223d68e36af340ca90f6382c5e9ed3a75e64f50b48e99a566f
-updated: 2017-11-21T16:30:00.93750585+01:00
+hash: b5d3d5bc58d358953c58891e57b5838efceaf0c52de2f5f351fc072c38ad2d83
+updated: 2017-11-23T12:53:55.722457241+01:00
 imports:
 - name: github.com/armon/go-metrics
   version: 9a4b6e10bed6220a1665955aa2b75afc91eb10b3
 - name: github.com/dgrijalva/jwt-go
   version: dbeaa9332f19a944acb5736b4456cfcc02140e29
 - name: github.com/dimfeld/httppath
-  version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
+  version: ee938bf735983d53694d79138ad9820efff94c92
 - name: github.com/dimfeld/httptreemux
   version: 13dde8a00d96b369e7398490fd8a3af9ca114b84
 - name: github.com/fabric8-services/fabric8-wit
@@ -33,7 +33,9 @@ imports:
   - goagen/gen_controller
   - goagen/utils
   - goatest
+  - logging/logrus
   - middleware
+  - middleware/gzip
   - middleware/security/jwt
   - uuid
 - name: github.com/hashicorp/go-immutable-radix
@@ -43,7 +45,7 @@ imports:
   subpackages:
   - simplelru
 - name: github.com/hashicorp/hcl
-  version: 37ab263305aaeb501a60eb16863e808d426e37f2
+  version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:
   - hcl/ast
   - hcl/parser
@@ -56,9 +58,9 @@ imports:
 - name: github.com/magiconair/properties
   version: be5ece7dd465ab0765a9682137865547526d1dfb
 - name: github.com/manveru/faker
-  version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
+  version: 9fbc68a78c4dbc7914e1a23f88f126bea4383b97
 - name: github.com/mitchellh/mapstructure
-  version: 5a0325d7fafaac12dda6e7fb8bd222ec1b69875e
+  version: 06020f85339e21b2478f756a78e295255ffa4d6a
 - name: github.com/pelletier/go-buffruneio
   version: c37440a7cf42ac63b919c752ca73a85067e05992
 - name: github.com/pelletier/go-toml
@@ -66,38 +68,43 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/satori/go.uuid
-  version: b061729afc07e77a8aa4fad0a2fd840958f1942a
+  version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
 - name: github.com/sirupsen/logrus
-  version: c078b1e43f58d563c74cebe63c85789e76ddb627
+  version: 95cd2b9c79aa5e72ab0bc69b7ccc2be15bf850f6
 - name: github.com/spf13/afero
-  version: 2f30b2a92c0e5700bcfe4715891adb1f2a7a406d
+  version: 8d919cbe7e2627e417f3e45c3c0e489a5b7e2536
   subpackages:
   - mem
 - name: github.com/spf13/cast
-  version: 24b6558033ffe202bf42f0f3b870dcc798dd2ba8
+  version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/cobra
-  version: 9495bc009a56819bdb0ddbc1a373e29c140bc674
+  version: 1be1d2841c773c01bee8289f55f7463b6e2c2539
 - name: github.com/spf13/jwalterweatherman
-  version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
+  version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
 - name: github.com/spf13/pflag
-  version: 5ccb023bc27df288a957c5e994cd44fd19619465
+  version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: github.com/spf13/viper
-  version: 651d9d916abc3c3d6a91a12549495caba5edffd2
+  version: 4dddf7c62e16bce5807744018f5b753bfe21bbd2
 - name: github.com/zach-klippenstein/goregen
   version: 795b5e3961ea1912fde60af417ad85e86acc0d6a
+- name: golang.org/x/crypto
+  version: 9f005a07e0d31d45e6656d241bb5c0f2efd4bc94
+  subpackages:
+  - ssh/terminal
 - name: golang.org/x/net
-  version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
+  version: c7086645de248775cbf2373cf5ca4d2fa664b8c1
   subpackages:
   - websocket
 - name: golang.org/x/sys
-  version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
+  version: 82aafbf43bf885069dc71b7e7c2f9d7a614d47da
   subpackages:
   - unix
+  - windows
 - name: golang.org/x/text
-  version: 47a200a05c8b3fd1b698571caecbb68beb2611ec
+  version: 88f656faf3f37f690df1a32515b479415e1a6769
   subpackages:
   - transform
   - unicode/norm
 - name: gopkg.in/yaml.v2
-  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+  version: 287cf08546ab5e7e37d55a84f7ed3fd1db036de5
 testImports: []
