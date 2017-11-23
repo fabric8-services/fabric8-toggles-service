@@ -10,25 +10,34 @@ import (
 
 const (
 	defaultLogLevel   = "info"
-	defaultWitURL     = "https://api.prod-preview.openshift.io/api/"
 	defaultTogglesURL = "http://f8toggles/api"
+	// Auth service URL to be used in dev mode. Can be overridden by setting up auth.url
+	devModeAuthURL = "http://localhost:8089"
 )
 
 const (
 	// Constants for viper variable names. Will be used to set
 	// default values as well as to get each value
-
 	varHTTPAddress                    = "http.address"
 	varDeveloperModeEnabled           = "developer.mode.enabled"
 	varTogglesURL                     = "toggles.url"
 	varAPIServerInsecureSkipTLSVerify = "api.server.insecure.skip.tls.verify"
 	varLogLevel                       = "log.level"
 	varLogJSON                        = "log.json"
+	varAuthURL                        = "auth.url"
 )
 
 // Data encapsulates the Viper configuration object which stores the configuration data in-memory.
 type Data struct {
 	v *viper.Viper
+}
+
+// GetAuthServiceURL returns the Auth Service URL
+func (c *Data) GetAuthServiceURL() string {
+	return c.v.GetString(varAuthURL)
+}
+func (d Data) GetKeycloakDevModeURL() string {
+	return ""
 }
 
 // NewData creates a configuration reader object using a configurable configuration file path
@@ -83,6 +92,11 @@ func (c *Data) setConfigDefaults() {
 	//-----
 	c.v.SetDefault(varDeveloperModeEnabled, false)
 	c.v.SetDefault(varLogLevel, defaultLogLevel)
+
+	//-----
+	// Auth-related defaults
+	//-----
+	c.v.SetDefault(varAuthURL, devModeAuthURL)
 
 }
 
