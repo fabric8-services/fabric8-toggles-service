@@ -43,10 +43,14 @@ You can see usage of the service in link:https://github.com/fabric8-ui/fabric8-u
 
 === REST endpoints
 
-To list the features with their associated toggle configuration:
-
-TODO copy swagger here
-
+features::
+```
+> curl http://localhost:8080/api/features/
+```
+features/id::
+```
+> curl http://localhost:8080/api/features/40bbdd3d-8b5d-4fd6-ac90-7236b669af04
+```
 === From UI
 In your angular app:
 
@@ -76,14 +80,24 @@ $ git clone https://github.com/fabric8-services/fabric8-toggles-services $GOPATH
 
 ==== Build
 
-To fetch the Go dependencies, generate code (GOA framework) and finally build the project you can
+To fetch the Go dependencies, generate code (link:https://github.com/goadesign/goa[GOA framework]) and finally build the project you can
 type:
 
 [source,shell]
 ----
 $ cd $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
-$ make
+$ make clean run
 ----
+
+ NOTE: The clean build target DOES not remove glide.lock to ease GOA code generated imports.
+ If you want to update the glide dependencies:
+ 1. rm -rf glide.lock
+ 2. modify glide.yaml
+ 3. comment all import of github.com/fabric8-services/fabric8-toggles-service/app as this is a GOA generated package
+ 4. make deps which does a glide install
+ 5. make generate
+ 6. uncomment section from 3.
+ 7. make build
 
 === Deploy
 You're now ready to deploy the service either locally or remotely.
