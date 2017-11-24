@@ -35,7 +35,7 @@ var _ = a.Resource("feature", func() {
 	a.BasePath("/api/features")
 
 	a.Action("show", func() {
-		//a.Security("jwt")
+		a.Security("jwt")
 		a.Routing(
 			a.GET("/:id"),
 		)
@@ -60,7 +60,7 @@ var featureList = jsonapi.JSONList(
 var _ = a.Resource("features", func() {
 	a.BasePath("/api/features")
 	a.Action("list", func() {
-		//a.Security("jwt")
+		a.Security("jwt")
 		a.Routing(
 			a.GET(""),
 		)

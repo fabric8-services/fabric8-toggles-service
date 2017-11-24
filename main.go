@@ -13,6 +13,7 @@ import (
 	"github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"net/http"
 )
 
@@ -51,6 +52,7 @@ func main() {
 	// Middleware that extracts and stores the token in the context
 	jwtMiddlewareTokenContext := witmiddleware.TokenContext(tokenManager.PublicKeys(), nil, app.NewJWTSecurity())
 	service.Use(jwtMiddlewareTokenContext)
+	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 
 	//service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
@@ -61,6 +63,10 @@ func main() {
 	// Mount "feature" controller
 	featureCtrl := controller.NewFeatureController(service)
 	app.MountFeatureController(service, featureCtrl)
+
+	// Mount "auth" controller
+	//authCtrl := authservice.NewAuthController(service, tenantService, keycloakConfig, openshiftConfig, templateVars)
+	//app.MountAuthController(service, authCtrl)
 
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.Handle("/", service.Mux)

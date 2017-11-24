@@ -9,6 +9,8 @@ DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -
 GOAGEN_BIN=$(VENDOR_DIR)/github.com/goadesign/goa/goagen/goagen
 CUR_DIR=$(shell pwd)
 INSTALL_PREFIX=$(CUR_DIR)/bin
+# This pattern excludes some folders from the coverage calculation (see grep -v)
+ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
 
 # For the global "clean" target all targets in this variable will be executed
 CLEAN_TARGETS =
@@ -77,6 +79,7 @@ clean-generated:
 	-rm -rf ./swagger/
 	-rm -rf ./tool/cli/
 	-rm -rf ./feature/feature
+	-rm -rf ./auth
 CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts
 ## Removes the ./bin directory.
@@ -98,6 +101,11 @@ deps: $(VENDOR_DIR)
 sysdeps:
 	go get -u github.com/Masterminds/glide
 
+.PHONY: test
+## Runs the "clean-generated" and the "generate" target
+test:
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	go test $(TEST_PACKAGES)
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
