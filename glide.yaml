@@ -4,8 +4,33 @@ license: Apache-2.0
 import:
 - package: github.com/spf13/viper
 - package: gopkg.in/yaml.v2
-- package: github.com/fabric8-services/fabric8-wit
+- package: github.com/pkg/errors
+  version: ^0.8.0
+- package: github.com/dgrijalva/jwt-go
+  version: ^3.0.0
+- package: github.com/goadesign/goa
+  version: ^1.3.0
+  vcs: git
+  subpackages:
+  - client
+  - cors
+  - design
+  - design/apidsl
+  - goagen
+  - goagen/codegen
+  - goagen/gen_app
+  - goagen/gen_controller
+  - goagen/utils
+  - goatest
+  - middleware
+  - middleware/security/jwt
+- package: github.com/spf13/cobra
+- package: github.com/fabric8-services/fabric8-auth
+  version: da575b14ac9ceb113f18f1c1cab75be256460d64
+  subpackages:
+  - design
+- name: github.com/fabric8-services/fabric8-wit
   version: ed49dd4d0678a97d13ba469efbd5cdea2e5dbe67
   subpackages:
-    - log
-    - errors
+  - goamiddleware
+  - log

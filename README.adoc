@@ -1,38 +1,111 @@
 = Fabric8 toggles service
 
+// Settings:
+:allow-uri-read:
+:safe: unsafe
+:idprefix:
+:idseparator: -
+ifndef::env-github[:icons: font]
+ifdef::env-github,env-browser[]
+:toc: macro
+:toclevels: 1
+endif::[]
+ifdef::env-github[]
+:branch: master
+:status:
+:outfilesuffix: .adoc
+:!toc-title:
+:caution-caption: :fire:
+:important-caption: :exclamation:
+:note-caption: :paperclip:
+:tip-caption: :bulb:
+:warning-caption: :warning:
+endif::[]
+
+toc::[]
+
+== Overview
+
 The fabric8-toggles-service is the client service to run with the link:https://github.com/fabric8-services/fabric8-toggles/[fabric8-toggles] server.
-It provides an easy way to define features as internal, experimental, beta or released from a UI application.
-You can see usage of the service in
+The server is heavily based on link:https://github.com/Unleash/unleash[Unleash server], a *feature toggle system*, that gives you a great overview over all feature toggles across all your applications and services.
+It comes with official client implementations for Java, Node.js and Go.
 
-== Building from source [[building]]
+fabric8-server defines 4 level of toggle configuration: `internal`, `experimental`, `beta` or `released`.
+The activation strategy is per userGroupId.
 
-The following guide is mainly targeted towards a Linux or Mac OSX development
+Using the admin console deployed with fabric8-toggle, you can easily
+move a feature from `experimental` to `beta`.
+This client makes use of the unleash Go SDK to connect to fabric8-toggles server.
+
+You can see usage of the service in link:https://github.com/fabric8-ui/fabric8-ui[fabric8-ui].
+
+== Usage
+
+=== REST endpoints
+
+features::
+```
+> curl http://localhost:8080/api/features/
+```
+features/id::
+```
+> curl http://localhost:8080/api/features/40bbdd3d-8b5d-4fd6-ac90-7236b669af04
+```
+=== From UI
+In your angular app:
+
+TODO
+
+== Development
+
+=== Build
+
+The following guide is mainly targeted towards a Linux or macOS development
 machine.
 
-* Install:
-** `go` (>= v1.8)
-** `git`
-** `make`
-** `glide`: Running `make build` will install glide (if not already there).
+==== Pre-requisites
 
+Have the following installed on your machine:
 
-* Get the code
+`go` Install link:https://golang.org/dl/[GoLang from 1.8+], set the environment variable `GOPATH`.
 
-----
+`glide` You can either install it yourself from link:https://github.com/Masterminds/glide#install[glide install guide]
+or run `make` which will install glide if not already installed.
+
+==== Get the code
+
+```sh
 $ git clone https://github.com/fabric8-services/fabric8-toggles-services $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
-----
+```
 
-* Build
+==== Build
 
-Like most other projects, this one depends on various other projects that need
-to be downloaded. We also generate some code from design files that shall make it into our
-final artifacts.
+To fetch the Go dependencies, generate code (link:https://github.com/goadesign/goa[GOA framework]) and finally build the project you can
+type:
 
-To fetch the dependencies, generate code and finally build the project you can
-type `make build` in a freshly clone repository of this project.
-
+[source,shell]
 ----
 $ cd $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
-$ make build
+$ make clean run
 ----
 
+ NOTE: The clean build target DOES not remove glide.lock to ease GOA code generated imports.
+ If you want to update the glide dependencies:
+ 1. rm -rf glide.lock
+ 2. modify glide.yaml
+ 3. comment all import of github.com/fabric8-services/fabric8-toggles-service/app as this is a GOA generated package
+ 4. make deps which does a glide install
+ 5. make generate
+ 6. uncomment section from 3.
+ 7. make build
+
+=== Deploy
+You're now ready to deploy the service either locally or remotely.
+
+For local deployment, 2 options:
+
+`Method 1`:: Deploy on you host machine, targeting remote fabric8-toggles server
+`Method 2`::
+. Deploy link:https://github.com/fabric8-services/fabric8-toggles/blob/master/.make/.minishift/README.adoc[fabric8-toggles] server on minishift.
+and service on minisift.
+. Deploy include::[fabric8-toggles-service] on minishift.
