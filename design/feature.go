@@ -39,9 +39,9 @@ var _ = a.Resource("feature", func() {
 		a.Routing(
 			a.GET("/:id"),
 		)
-		//a.Params(func() {
-		//	a.Param("id", d.String, "id")
-		//})
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
 		a.Description("Show feature details.")
 		a.Response(d.OK, feature)
 		a.Response(d.BadRequest, jsonapi.JSONAPIErrors)
@@ -64,7 +64,7 @@ var _ = a.Resource("features", func() {
 		a.Routing(
 			a.GET(""),
 		)
-		a.Description("Show a single tenant environment.")
+		a.Description("Show a list of features enabled.")
 		a.Response(d.OK, featureList)
 		a.Response(d.BadRequest, jsonapi.JSONAPIErrors)
 		a.Response(d.NotFound, jsonapi.JSONAPIErrors)

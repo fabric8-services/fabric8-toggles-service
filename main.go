@@ -53,8 +53,7 @@ func main() {
 	jwtMiddlewareTokenContext := witmiddleware.TokenContext(tokenManager.PublicKeys(), nil, app.NewJWTSecurity())
 	service.Use(jwtMiddlewareTokenContext)
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
-
-	//service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
+	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
 	// Mount "features" controller
 	featuresCtrl := controller.NewFeaturesController(service)
@@ -64,9 +63,6 @@ func main() {
 	featureCtrl := controller.NewFeatureController(service)
 	app.MountFeatureController(service, featureCtrl)
 
-	// Mount "auth" controller
-	//authCtrl := authservice.NewAuthController(service, tenantService, keycloakConfig, openshiftConfig, templateVars)
-	//app.MountAuthController(service, authCtrl)
 
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.Handle("/", service.Mux)
