@@ -125,4 +125,13 @@ imports:
   - json
 - name: gopkg.in/yaml.v2
   version: 287cf08546ab5e7e37d55a84f7ed3fd1db036de5
+- name: github.com/Unleash/unleash-client-go
+  version: 377eea70f16806a6f68414ceed39b1f750eafe1f
+  repo: https://github.com/xcoulon/unleash-client-go
+  vcs: git
+  subpackages:
+  - context
+  - internal/api
+  - internal/strategies
+  - strategy
 testImports: []

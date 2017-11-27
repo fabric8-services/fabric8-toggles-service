@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/fabric8-services/fabric8-toggles-service/app"
+	"github.com/fabric8-services/fabric8-toggles-service/configuration"
 	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -10,11 +11,15 @@ import (
 // FeatureController implements the feature resource.
 type FeatureController struct {
 	*goa.Controller
+	config *configuration.Data
 }
 
 // NewFeatureController creates a feature controller.
-func NewFeatureController(service *goa.Service) *FeatureController {
-	return &FeatureController{Controller: service.NewController("FeatureController")}
+func NewFeatureController(service *goa.Service, config *configuration.Data) *FeatureController {
+	return &FeatureController{
+		Controller: service.NewController("FeatureController"),
+		config:     config,
+	}
 }
 
 // Show runs the show action.

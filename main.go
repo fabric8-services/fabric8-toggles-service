@@ -21,7 +21,7 @@ func main() {
 
 	// Initialized configuration
 	config, err := configuration.GetData()
-	if err != nil {
+	if err != nil || config == nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to setup the configuration")
@@ -56,13 +56,12 @@ func main() {
 	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
 	// Mount "features" controller
-	featuresCtrl := controller.NewFeaturesController(service)
+	featuresCtrl := controller.NewFeaturesController(service, config)
 	app.MountFeaturesController(service, featuresCtrl)
 
 	// Mount "feature" controller
-	featureCtrl := controller.NewFeatureController(service)
+	featureCtrl := controller.NewFeatureController(service, config)
 	app.MountFeatureController(service, featureCtrl)
-
 
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.Handle("/", service.Mux)
