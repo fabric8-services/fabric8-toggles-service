@@ -143,3 +143,5 @@ $ curl -H "Authorization: Bearer XXX.YYY.ZZZ" http://localhost:8080/api/features
 }
 ```
 
+where `XXX.YYY.ZZZ` is your OAuth2 Keycloak token. Here we are targeting defaultKeycloakURL ie: `https://auth.prod-preview.openshift.io`.
+To get this token, login to link:https://prod-preview.openshift.io[OSiO prod-preview] with google devtools console retrieve `auth_token`.
