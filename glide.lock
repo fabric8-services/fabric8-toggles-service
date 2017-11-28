@@ -134,4 +134,10 @@ imports:
   - internal/api
   - internal/strategies
   - strategy
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
+  - require
+  - suite
 testImports: []

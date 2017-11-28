@@ -74,11 +74,11 @@ func getFeatureListFromUnleashServer(ctx *app.ListFeaturesContext, config *confi
 	}
 
 	listOfFeatures := toggleClient.GetEnabledFeatures(groupId)
-	res = format(listOfFeatures, groupId)
+	res = convert(listOfFeatures, groupId)
 	return &res, nil
 }
 
-func format(list []string, groupId string) app.FeatureList {
+func convert(list []string, groupId string) app.FeatureList {
 	res := app.FeatureList{}
 	for i := 0; i < len(list); i++ {
 		// TODO remove ID, make unleash client return description

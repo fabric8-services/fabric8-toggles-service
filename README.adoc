@@ -113,7 +113,7 @@ image::images/debug.png[GoLand Debug]
 * Go to fabric8-toggles-server admin console (ie: the unleash admin console)
    http://fabric8-toggles-f8toggles.MINISHIFT_IP.nip.io/#/strategies add a strategy with name `enableByGroupID` with a parameter `groupID`
 * Go to features list, add a feature with name "feature1", give a description and add the newly created strategy, enter `Red Hat`
-for `groupId`. Enable the feature, you should get:
+for `groupID`. Enable the feature, you should get:
 
 image::images/unleash_admin.png[admin console]
 
