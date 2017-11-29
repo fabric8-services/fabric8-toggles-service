@@ -7,6 +7,10 @@ import (
 	unleashcontext "github.com/Unleash/unleash-client-go/context"
 )
 
+type Client interface {
+	GetEnabledFeatures(groupId string) []string
+}
+
 // ToggleClient the toggle client
 type ToggleClient struct {
 	unleashClient unleash.Client

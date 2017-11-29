@@ -57,7 +57,7 @@ func main() {
 
 	// Mount "features" controller
 	featuresCtrl := controller.NewFeaturesController(service, config)
-	app.MountFeaturesController(service, featuresCtrl)
+	app.MountFeaturesController(service, featuresCtrl.(app.FeaturesController))
 
 	// Mount "feature" controller
 	featureCtrl := controller.NewFeatureController(service, config)
