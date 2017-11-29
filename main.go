@@ -56,8 +56,9 @@ func main() {
 	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
 	// Mount "features" controller
-	featuresCtrl := controller.NewFeaturesController(service, config)
-	app.MountFeaturesController(service, featuresCtrl.(app.FeaturesController))
+	client, err :=controller.NewClient(config)
+	featuresCtrl := controller.NewFeaturesController(service, config, client)
+	app.MountFeaturesController(service, featuresCtrl)
 
 	// Mount "feature" controller
 	featureCtrl := controller.NewFeatureController(service, config)

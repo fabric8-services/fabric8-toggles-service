@@ -11,22 +11,23 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type FeaturesControllerInterface interface {
-	GetClient(ctx *app.ListFeaturesContext, config *configuration.Data) (featuretoggles.Client, error)
-}
 
 // FeaturesController implements the features resource.
 type FeaturesController struct {
 	*goa.Controller
 	config *configuration.Data
+	client featuretoggles.Client
 }
 
 // NewFeaturesController creates a features controller.
-func NewFeaturesController(service *goa.Service, config *configuration.Data) FeaturesControllerInterface {
-	return &FeaturesController{
+func NewFeaturesController(service *goa.Service, config *configuration.Data, client featuretoggles.Client) *FeaturesController {
+
+	ctrl:= FeaturesController{
 		Controller: service.NewController("FeaturesController"),
 		config:     config,
+		client: client,
 	}
+	return &ctrl
 }
 
 // List runs the list action.
@@ -52,10 +53,10 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 	return ctx.OK(enableFeatures)
 }
 
-func (c *FeaturesController) GetClient(ctx *app.ListFeaturesContext, config *configuration.Data) (featuretoggles.Client, error) {
-	toggleClient, err := featuretoggles.NewFeatureToggleClient(ctx.Context, config)
+func NewClient(config *configuration.Data) (featuretoggles.Client, error) {
+	toggleClient, err := featuretoggles.NewFeatureToggleClient(nil, config)
 	if err != nil {
-		log.Error(ctx.Context, map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"addr": config.GetHTTPAddress(),
 			"err":  err,
 		}, "Unable to connect to Unleash server")
@@ -66,15 +67,16 @@ func (c *FeaturesController) GetClient(ctx *app.ListFeaturesContext, config *con
 
 func (c *FeaturesController) getFeatureListFromUnleashServer(ctx *app.ListFeaturesContext, config *configuration.Data, groupId string) (*app.FeatureList, error) {
 	res := app.FeatureList{}
-	toggleClient, err := c.GetClient(ctx, config)
-	if err != nil {
-		log.Error(ctx.Context, map[string]interface{}{
-			"addr": config.GetHTTPAddress(),
-			"err":  err,
-		}, "Unable to connect to Unleash server")
-		return nil, err
-	}
-	listOfFeatures := toggleClient.GetEnabledFeatures(groupId)
+	//toggleClient, err := c.GetClient(ctx, config)
+	//if err != nil {
+	//	log.Error(ctx.Context, map[string]interface{}{
+	//		"addr": config.GetHTTPAddress(),
+	//		"err":  err,
+	//	}, "Unable to connect to Unleash server")
+	//	return nil, err
+	//}
+	//listOfFeatures := toggleClient.GetEnabledFeatures(groupId)
+	listOfFeatures := c.client.GetEnabledFeatures(groupId)
 	res = convert(listOfFeatures, groupId)
 	return &res, nil
 }
