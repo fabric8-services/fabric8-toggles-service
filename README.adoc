@@ -39,23 +39,6 @@ This client makes use of the unleash Go SDK to connect to fabric8-toggles server
 
 You can see usage of the service in link:https://github.com/fabric8-ui/fabric8-ui[fabric8-ui].
 
-== Usage
-
-=== REST endpoints
-
-features::
-```
-> curl http://localhost:8080/api/features/
-```
-features/id::
-```
-> curl http://localhost:8080/api/features/40bbdd3d-8b5d-4fd6-ac90-7236b669af04
-```
-=== From UI
-In your angular app:
-
-TODO
-
 == Development
 
 === Build
@@ -89,23 +72,76 @@ $ cd $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
 $ make clean run
 ----
 
- NOTE: The clean build target DOES not remove glide.lock to ease GOA code generated imports.
+[TIP]
+====
+ The clean build target DOES not remove glide.lock to ease GOA code generated imports.
  If you want to update the glide dependencies:
  1. rm -rf glide.lock
  2. modify glide.yaml
- 3. comment all import of github.com/fabric8-services/fabric8-toggles-service/app as this is a GOA generated package
+ 3. comment all import of github.com/fabric8-services/fabric8-toggles-service/app
+ as this is a GOA generated package
  4. make deps which does a glide install
  5. make generate
  6. uncomment section from 3.
  7. make build
+====
+
+==== Run test
+
+To run unit tests:
+```
+make test
+```
 
 === Deploy
-You're now ready to deploy the service either locally or remotely.
+You're now ready to deploy the service. For local deployment, we recommend:
 
-For local deployment, 2 options:
+`Deploy fabric8-toggles server on Minishift`::
+* Follow the instructions on link:[fabric8-toggles] to deploy to minishift
+* Run:
+`minishift ip` to get the URL of the fabric8-toggles server. Replace MINISHIFT_IP with this value when reading further.
 
-`Method 1`:: Deploy on you host machine, targeting remote fabric8-toggles server
-`Method 2`::
-. Deploy link:https://github.com/fabric8-services/fabric8-toggles/blob/master/.make/.minishift/README.adoc[fabric8-toggles] server on minishift.
-and service on minisift.
-. Deploy include::[fabric8-toggles-service] on minishift.
+[Note]
+====
+You can also start the service in your IDE. For example with GoLand, you can configure you remote debug
+
+image::images/debug.png[GoLand Debug]
+====
+
+`Configure unleash database`::
+
+* Go to fabric8-toggles-server admin console (ie: the unleash admin console)
+   http://fabric8-toggles-f8toggles.MINISHIFT_IP.nip.io/#/strategies add a strategy with name `enableByGroupID` with a parameter `groupID`
+* Go to features list, add a feature with name "feature1", give a description and add the newly created strategy, enter `Red Hat`
+for `groupID`. Enable the feature, you should get:
+
+image::images/unleash_admin.png[admin console]
+
+[NOTE]
+This is a temporary settings, the fabric8-server should boostrap those value. TODO.
+
+`Deploy fabric8-toggles-service on your localhost`::
+
+* Run `F8_TOGGLES_URL=http://fabric8-toggles-f8toggles.MINISHIFT_IP.nip.io/api make run`
+* where `F8_TOGGLES_URL` points to the exposed route.
+
+`Test your service locally with a curl`::
+
+```
+$ curl -H "Authorization: Bearer XXX.YYY.ZZZ" http://localhost:8080/api/features
+{
+  "data":
+    [{
+      "attributes": {
+        "description":"Description of the feature",
+        "enabled":true,
+        "groupId":"Red Hat",
+        "name":"feature"
+        },
+      "id":"47441e34-e875-490f-9207-02f85b38dc21"}
+    }]
+}
+```
+
+where `XXX.YYY.ZZZ` is your OAuth2 Keycloak token. Here we are targeting defaultKeycloakURL ie: `https://auth.prod-preview.openshift.io`.
+To get this token, login to link:https://prod-preview.openshift.io[OSiO prod-preview] with google devtools console retrieve `auth_token`.

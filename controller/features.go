@@ -1,51 +1,71 @@
 package controller
 
 import (
-	"fmt"
+	"context"
+
+	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
+	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
+	"github.com/fabric8-services/fabric8-toggles-service/errors"
+	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
 )
 
 // FeaturesController implements the features resource.
 type FeaturesController struct {
 	*goa.Controller
+	client *featuretoggles.Client
 }
 
 // NewFeaturesController creates a features controller.
-func NewFeaturesController(service *goa.Service) *FeaturesController {
-	return &FeaturesController{Controller: service.NewController("FeaturesController")}
+func NewFeaturesController(service *goa.Service, client *featuretoggles.Client) *FeaturesController {
+	return &FeaturesController{
+		Controller: service.NewController("FeaturesController"),
+		client:     client,
+	}
 }
 
 // List runs the list action.
 func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
-	// FeaturesController_List: start_implement
-
-	// Put your logic here
-
-	// FeaturesController_List: end_implement
-	return ctx.OK(buildFeaturesList(5))
+	jwtToken := goajwt.ContextJWT(ctx)
+	if jwtToken == nil {
+		log.Error(ctx.Context, map[string]interface{}{}, "Unable to retrieve token")
+		return errorhandler.JSONErrorResponse(ctx, errors.NewUnauthorizedError("Missing JWT token"))
+	}
+	if groupID, ok := jwtToken.Claims.(jwtgo.MapClaims)["company"].(string); ok {
+		enableFeatures := c.getEnabledFeatures(ctx, groupID)
+		log.Debug(ctx, nil, "FEATURES: %s", enableFeatures)
+		return ctx.OK(enableFeatures)
+	}
+	return errorhandler.JSONErrorResponse(ctx, errors.NewUnauthorizedError("Incomplete JWT token"))
 }
 
-func buildFeaturesList(length int) *app.FeatureList {
+func (c *FeaturesController) getEnabledFeatures(ctx *app.ListFeaturesContext, groupID string) *app.FeatureList {
+	listOfFeatures := c.client.GetEnabledFeatures(groupID)
+	return convert(ctx, listOfFeatures, groupID)
+}
+
+func convert(ctx context.Context, list []string, groupID string) *app.FeatureList {
 	res := app.FeatureList{}
-	for i := 0; i < length; i++ {
+	for i := 0; i < len(list); i++ {
+		// TODO remove ID, make unleash client return description
 		ID := uuid.NewV4()
-		// TODO call unleash SDK to retrieve features/strategy
 		descriptionFeature := "Description of the feature"
 		enabledFeature := true
-		nameFeature := fmt.Sprintf("Feature %d", i)
-		groupId := "BETA"
-
+		nameFeature := list[i]
 		feature := app.Feature{
 			ID: ID,
 			Attributes: &app.FeatureAttributes{
 				Description: &descriptionFeature,
 				Enabled:     &enabledFeature,
 				Name:        &nameFeature,
-				GroupID:     &groupId,
+				GroupID:     &groupID,
 			},
 		}
+		log.Info(ctx, map[string]interface{}{"feature_name": nameFeature}, "found enabled feature for user")
 		res.Data = append(res.Data, &feature)
 	}
 	return &res

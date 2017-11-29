@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+
+	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
+
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/configuration"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
@@ -14,14 +18,13 @@ import (
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	"net/http"
 )
 
 func main() {
 
 	// Initialized configuration
 	config, err := configuration.GetData()
-	if err != nil {
+	if err != nil || config == nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to setup the configuration")
@@ -55,14 +58,21 @@ func main() {
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
+	// init the toogle client
+	toogleClient, err := featuretoggles.NewClient(config)
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to create toogle client")
+
+	}
 	// Mount "features" controller
-	featuresCtrl := controller.NewFeaturesController(service)
+	featuresCtrl := controller.NewFeaturesController(service, toogleClient)
 	app.MountFeaturesController(service, featuresCtrl)
 
 	// Mount "feature" controller
-	featureCtrl := controller.NewFeatureController(service)
+	featureCtrl := controller.NewFeatureController(service, config)
 	app.MountFeatureController(service, featureCtrl)
-
 
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.Handle("/", service.Mux)
