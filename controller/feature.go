@@ -46,11 +46,10 @@ func (c *FeatureController) Show(ctx *app.ShowFeatureContext) error {
 
 func (c *FeatureController) convert(featureID string, groupID string, enabledFeature bool) *app.Feature {
 	descriptionFeature := "Description of the feature"
-	nameFeature := featureID
 	feature := app.Feature{
-		ID: nameFeature,
+		ID: featureID,
 		Attributes: &app.FeatureAttributes{
-			Name:        &nameFeature,
+			Name:        &featureID,
 			Description: &descriptionFeature,
 			Enabled:     &enabledFeature,
 			GroupID:     &groupID,
