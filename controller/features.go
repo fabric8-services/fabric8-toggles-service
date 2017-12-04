@@ -49,22 +49,20 @@ func (c *FeaturesController) getEnabledFeatures(ctx *app.ListFeaturesContext, gr
 
 func convert(ctx context.Context, list []string, groupID string) *app.FeatureList {
 	res := app.FeatureList{}
-	for i := 0; i < len(list); i++ {
+	for _, name := range list {
 		// TODO remove ID, make unleash client return description
-		ID := list[i]
 		descriptionFeature := "Description of the feature"
 		enabledFeature := true
-		nameFeature := list[i]
 		feature := app.Feature{
-			ID: ID,
+			ID: name,
 			Attributes: &app.FeatureAttributes{
 				Description: &descriptionFeature,
 				Enabled:     &enabledFeature,
-				Name:        &nameFeature,
+				Name:        &name,
 				GroupID:     &groupID,
 			},
 		}
-		log.Info(ctx, map[string]interface{}{"feature_name": nameFeature}, "found enabled feature for user")
+		log.Info(ctx, map[string]interface{}{"feature_name": name}, "found enabled feature for user")
 		res.Data = append(res.Data, &feature)
 	}
 	return &res
