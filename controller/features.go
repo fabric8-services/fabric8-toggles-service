@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	uuid "github.com/satori/go.uuid"
 )
 
 // FeaturesController implements the features resource.
@@ -52,7 +51,7 @@ func convert(ctx context.Context, list []string, groupID string) *app.FeatureLis
 	res := app.FeatureList{}
 	for i := 0; i < len(list); i++ {
 		// TODO remove ID, make unleash client return description
-		ID := uuid.NewV4()
+		ID := list[i]
 		descriptionFeature := "Description of the feature"
 		enabledFeature := true
 		nameFeature := list[i]

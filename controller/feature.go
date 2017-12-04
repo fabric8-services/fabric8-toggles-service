@@ -1,49 +1,60 @@
 package controller
 
 import (
+	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
-	"github.com/fabric8-services/fabric8-toggles-service/configuration"
 	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
+	"github.com/fabric8-services/fabric8-toggles-service/errors"
+	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
 // FeatureController implements the feature resource.
 type FeatureController struct {
 	*goa.Controller
-	config *configuration.Data
+	client *featuretoggles.Client
 }
 
 // NewFeatureController creates a feature controller.
-func NewFeatureController(service *goa.Service, config *configuration.Data) *FeatureController {
+func NewFeatureController(service *goa.Service, client *featuretoggles.Client) *FeatureController {
 	return &FeatureController{
 		Controller: service.NewController("FeatureController"),
-		config:     config,
+		client:     client,
 	}
 }
 
 // Show runs the show action.
 func (c *FeatureController) Show(ctx *app.ShowFeatureContext) error {
 	// FeatureController_Show: start_implement
-	featureID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errorhandler.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	jwtToken := goajwt.ContextJWT(ctx)
+	if jwtToken == nil {
+		log.Error(ctx.Context, map[string]interface{}{}, "Unable to retrieve token")
+		return errorhandler.JSONErrorResponse(ctx, errors.NewUnauthorizedError("Missing JWT token"))
 	}
-	// TODO call unleash SDK to retrieve features/strategy
-	descriptionFeature := "Description of the feature"
-	enabledFeature := true
-	nameFeature := "Feature A"
-	groupId := "BETA"
+	featureID := ctx.ID
+	var enabledFeature *app.Feature
+	if groupID, ok := jwtToken.Claims.(jwtgo.MapClaims)["company"].(string); ok {
+		log.Info(ctx, nil, "Is feature id: %s enabled? ", featureID)
+		enabled := c.client.IsFeatureEnabled(featureID, groupID)
+		enabledFeature = c.convert(featureID, groupID, enabled)
+		return ctx.OK(enabledFeature)
+	}
+	return errorhandler.JSONErrorResponse(ctx, errors.NewUnauthorizedError("Incomplete JWT token"))
+}
 
+func (c *FeatureController) convert(featureID string, groupID string, enabledFeature bool) *app.Feature {
+	descriptionFeature := "Description of the feature"
+	nameFeature := featureID
 	feature := app.Feature{
-		ID: featureID,
+		ID: nameFeature,
 		Attributes: &app.FeatureAttributes{
+			Name:        &nameFeature,
 			Description: &descriptionFeature,
 			Enabled:     &enabledFeature,
-			Name:        &nameFeature,
-			GroupID:     &groupId,
+			GroupID:     &groupID,
 		},
 	}
-	// FeatureController_Show: end_implement
-	return ctx.OK(&feature)
+	return &feature
 }

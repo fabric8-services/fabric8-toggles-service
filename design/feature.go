@@ -8,8 +8,8 @@ import (
 
 var feature = a.Type("Feature", func() {
 	a.Description(`JSONAPI for the feature object. See also http://jsonapi.org/format/#document-resource-object`)
-	a.Attribute("id", d.UUID, "Id of feature", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
+	a.Attribute("id", d.String, "Id of feature", func() {
+		a.Example("Feature name")
 	})
 	a.Attribute("attributes", featureAttributes)
 	a.Required("id", "attributes")

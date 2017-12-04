@@ -11,10 +11,8 @@ import (
 const (
 	defaultLogLevel      = "info"
 	defaultTogglesURL    = "http://f8toggles/api"
-	defaultKeycloakURL   = "https://auth.prod-preview.openshift.io"
+	defaultKeycloakURL   = "https://auth.openshift.io"
 	defaultKeycloakRealm = "fabric8"
-	// Auth service URL to be used in get mode. Can be overridden by setting up auth.url
-	devModeAuthURL = "http://localhost:8089"
 	// DevModeRsaPrivateKey for signing JWT Tokens in Dev Mode
 	// ssh-keygen -f alm_rsa
 	DevModeRsaPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
