@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Unleash/unleash-client-go"
 	unleashcontext "github.com/Unleash/unleash-client-go/context"
 	unleashstrategy "github.com/Unleash/unleash-client-go/strategy"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -14,7 +15,6 @@ import (
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/magiconair/properties/assert"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,6 +49,14 @@ func (m *MockUnleashClient) GetEnabledFeatures(ctx *unleashcontext.Context) []st
 		}
 	}
 	return result
+}
+
+// IsFeatureEnabled mimicks the behaviour of the real client, always returns true
+func (c *MockUnleashClient) IsEnabled(feature string, options ...unleash.FeatureOption) (enabled bool) {
+	if feature == "ENABLED" {
+		return true
+	}
+	return false
 }
 
 func (m *MockUnleashClient) Close() error {
@@ -131,7 +139,7 @@ func createInvalidContext() context.Context {
 func buildExpectedFeaturesList(length int) *app.FeatureList {
 	res := app.FeatureList{}
 	for i := 0; i < length; i++ {
-		ID := uuid.NewV4()
+		ID := fmt.Sprintf("Feature %d", i)
 		descriptionFeature := "Description of the feature"
 		enabledFeature := true
 		nameFeature := fmt.Sprintf("Feature %d", i)

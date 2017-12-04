@@ -10,6 +10,7 @@ import (
 type UnleashClient interface {
 	Ready() <-chan bool
 	GetEnabledFeatures(ctx *unleashcontext.Context) []string
+	IsEnabled(feature string, options ...unleash.FeatureOption) (enabled bool)
 	Close() error
 }
 
@@ -54,4 +55,16 @@ func (c *Client) GetEnabledFeatures(groupID string) []string {
 			GroupID: groupID,
 		},
 	})
+}
+
+// IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given groupID
+func (c *Client) IsFeatureEnabled(featureID string, groupID string) bool {
+
+	ctx := unleashcontext.Context{
+		Properties: map[string]string{
+			GroupID: groupID,
+		},
+	}
+
+	return c.UnleashClient.IsEnabled(featureID, unleash.WithContext(ctx))
 }

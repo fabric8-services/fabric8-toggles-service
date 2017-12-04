@@ -58,8 +58,8 @@ func main() {
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
-	// init the toogle client
-	toogleClient, err := featuretoggles.NewClient(config)
+	// init the toggle client
+	toggleClient, err := featuretoggles.NewClient(config)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
@@ -67,11 +67,11 @@ func main() {
 
 	}
 	// Mount "features" controller
-	featuresCtrl := controller.NewFeaturesController(service, toogleClient)
+	featuresCtrl := controller.NewFeaturesController(service, toggleClient)
 	app.MountFeaturesController(service, featuresCtrl)
 
 	// Mount "feature" controller
-	featureCtrl := controller.NewFeatureController(service, config)
+	featureCtrl := controller.NewFeatureController(service, toggleClient)
 	app.MountFeatureController(service, featureCtrl)
 
 	http.Handle("/favicon.ico", http.NotFoundHandler())
