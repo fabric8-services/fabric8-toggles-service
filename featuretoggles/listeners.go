@@ -31,27 +31,22 @@ func (m *MetricsListener) OnRegistered(payload unleash.ClientData) {
 	}, "toggles registered")
 }
 
-type ErrorListener struct {
-}
-
 // OnError prints out errors.
-func (m *ErrorListener) OnError(err error) {
+func (m *MetricsListener) OnError(err error) {
 	log.Error(nil, map[string]interface{}{
 		"err": err.Error(),
 	}, "toggles error")
 }
 
 // OnWarning prints out warning.
-func (m *ErrorListener) OnWarning(warning error) {
+func (m *MetricsListener) OnWarning(warning error) {
 	log.Warn(nil, map[string]interface{}{
 		"err": warning.Error(),
 	}, "toggles warning")
 }
 
-type RepositoryListener struct{}
-
 // OnReady prints to the console when the repository is ready.
-func (m *RepositoryListener) OnReady() {
+func (m *MetricsListener) OnReady() {
 	ready = true
 	log.Info(nil, map[string]interface{}{}, "toggles ready")
 }
