@@ -34,15 +34,13 @@ func NewClient(config ToggleServiceConfiguration) (*Client, error) {
 		unleash.WithAppName("fabric8-ui"),
 		unleash.WithUrl(config.GetTogglesURL()),
 		unleash.WithStrategies(&EnableByGroupIDStrategy{}),
-		// unleash.WithRefreshInterval(1*time.Second),
+		unleash.WithRefreshInterval(1*time.Second),
 		unleash.WithMetricsInterval(5*time.Second),
-		unleash.WithListener(MetricsListener{}),
+		unleash.WithListener(&MetricsListener{}),
 	)
 	if err != nil {
 		return nil, err
 	}
-	// wait until client did perform a data sync
-	<-client.Ready()
 	return &Client{UnleashClient: client}, nil
 
 }
