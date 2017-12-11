@@ -43,3 +43,6 @@ import:
   subpackages:
   - assert
   - suite
+- package: golang.org/x/tools
+  subpackages:
+  - go/ast/astutil

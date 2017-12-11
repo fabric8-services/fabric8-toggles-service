@@ -140,4 +140,8 @@ imports:
   - assert
   - require
   - suite
+- name: golang.org/x/tools
+  version: a888bfdffa4526cc6987572bca9a2c6b7758290f
+  subpackages:
+  - go/ast/astutil
 testImports: []
