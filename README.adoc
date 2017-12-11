@@ -93,6 +93,7 @@ To run unit tests:
 make test
 ```
 
+:deploy:
 === Deploy
 You're now ready to deploy the service. For local deployment, we recommend:
 
@@ -118,7 +119,7 @@ for `groupID`. Enable the feature, you should get:
 image::images/unleash_admin.png[admin console]
 
 [NOTE]
-This is a temporary settings, the fabric8-server should boostrap those value. TODO.
+This is a temporary settings, the fabric8-server should bootstrap those value. TODO.
 
 `Deploy fabric8-toggles-service on your localhost`::
 
@@ -145,3 +146,39 @@ $ curl -H "Authorization: Bearer XXX.YYY.ZZZ" http://localhost:8080/api/features
 
 where `XXX.YYY.ZZZ` is your OAuth2 Keycloak token. Here we are targeting defaultKeycloakURL ie: `https://auth.prod-preview.openshift.io`.
 To get this token, login to link:https://prod-preview.openshift.io[OSiO prod-preview] with google devtools console retrieve `auth_token`.
+
+==== Docker build
+
+* build image from cent:os
+
+```
+make docker-image-builder
+```
+
+* start docker detached container
+
+```
+make docker-start
+```
+> NOTE: For `macOS` user, first `export USER=root`
+
+* build service
+
+You can now run any target withing the contain using
+
+```
+make docker-clean
+make docker-deps
+make docker-generate
+make docker-build
+```
+
+* run service within container
+`fabric8-toggles-service` is a client of fabric8-toggles as a pre-requisites, you should have the server running.
+See <<deploy>> section.
+
+
+```
+make docker-image-deploy
+docker run --name toggles-service-container -p 8080:8080 -e F8_TOGGLES_URL=http://fabric8-toggles-MINISHIFT_IP.nip.io/api fabric8-toggles-service-deploy
+```

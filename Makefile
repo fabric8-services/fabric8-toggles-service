@@ -1,6 +1,7 @@
 PACKAGE_NAME := github.com/fabric8-services/fabric8-toggles-service
+PROJECT_NAME=fabric8-toggles-service
 SOURCE_DIR ?= .
-SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+SOURCES := $(shell find $(SOURCE_DIR) -type d \( -name vendor -o -name .glide \) -prune -o -name '*.go' -print)
 VENDOR_DIR=vendor
 LDFLAGS := -w
 BINARY := fabric8-toggles-service
@@ -9,6 +10,10 @@ DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -
 GOAGEN_BIN=$(VENDOR_DIR)/github.com/goadesign/goa/goagen/goagen
 CUR_DIR=$(shell pwd)
 INSTALL_PREFIX=$(CUR_DIR)/bin
+DOCKER_BIN_NAME=docker
+DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
+GLIDE_BIN_NAME := glide
+GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
 
@@ -17,6 +22,10 @@ CLEAN_TARGETS =
 
 $(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
+
+ifdef DOCKER_BIN
+include ./.make/docker.mk
+endif
 
 # If nothing was specified, run all targets as if in a fresh clone
 .PHONY: all
@@ -61,7 +70,7 @@ dev: deps
 	echo 'TODO Docker'
 
 $(VENDOR_DIR): glide.yaml
-	$(GOPATH)/bin/glide install
+	$(GLIDE_BIN) install
 	touch $(VENDOR_DIR)
 
 CLEAN_TARGETS += clean-deps
