@@ -9,7 +9,6 @@ import (
 	unleashcontext "github.com/Unleash/unleash-client-go/context"
 	unleashstrategy "github.com/Unleash/unleash-client-go/strategy"
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/app/test"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 	"github.com/goadesign/goa"
@@ -101,7 +100,6 @@ func TestListFeatures(t *testing.T) {
 			},
 		},
 	}
-	expectedFeaturesList := buildExpectedFeaturesList(5)
 
 	t.Run("OK with jwt token without groupID claim", func(t *testing.T) {
 		// when/then
@@ -112,8 +110,8 @@ func TestListFeatures(t *testing.T) {
 		_, featuresList := test.ListFeaturesOK(t, createValidContext(), svc, &ctrl)
 		// then
 		require.Equal(t, 2, len(featuresList.Data))
-		assert.Equal(t, featuresList.Data[0].Attributes.Name, expectedFeaturesList.Data[1].Attributes.Name)
-		assert.Equal(t, featuresList.Data[1].Attributes.Name, expectedFeaturesList.Data[3].Attributes.Name)
+		assert.Equal(t, *featuresList.Data[0].Attributes.GroupID, "Red Hat")
+		assert.Equal(t, *featuresList.Data[1].Attributes.GroupID, "Red Hat")
 	})
 	//t.Run("Unauhorized - no token", func(t *testing.T) {
 	//	test.ListFeaturesUnauthorized(t, context.Background(), svc, ctrl)
@@ -134,32 +132,4 @@ func createInvalidContext() context.Context {
 	claims := jwt.MapClaims{}
 	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
 	return goajwt.WithJWT(context.Background(), token)
-}
-
-func buildExpectedFeaturesList(length int) *app.FeatureList {
-	res := app.FeatureList{}
-	for i := 0; i < length; i++ {
-		ID := fmt.Sprintf("Feature %d", i)
-		descriptionFeature := "Description of the feature"
-		enabledFeature := true
-		nameFeature := fmt.Sprintf("Feature %d", i)
-		var groupId string
-		if i%2 == 0 {
-			groupId = "BETA"
-		} else {
-			groupId = "RED HAT"
-		}
-
-		feature := app.Feature{
-			ID: ID,
-			Attributes: &app.FeatureAttributes{
-				Description: &descriptionFeature,
-				Enabled:     &enabledFeature,
-				Name:        &nameFeature,
-				GroupID:     &groupId,
-			},
-		}
-		res.Data = append(res.Data, &feature)
-	}
-	return &res
 }
