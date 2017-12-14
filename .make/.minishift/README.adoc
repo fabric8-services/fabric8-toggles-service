@@ -138,10 +138,15 @@ eval $(minishift docker-env)
 docker login -u developer -p $(oc whoami -t) $(minishift openshift registry)
 make docker-image-build
 make docker-start
-make clean
-make deps
-make generate
-make build
+make docker-clean
+# PROBLEM WITH detach mode, volume not mounted
+#make docker-clean
+#docker exec -t -i "fabric8-toggles-service-local-build" bash -ec 'make clean'
+#make: *** No rule to make target `clean'.  Stop.
+#make: *** [docker-clean] Error 2
+make docker-deps
+make docker-generate
+make docker-build
 make docker-image-deploy
 docker tag fabric8-toggles-service-deploy $(minishift openshift registry)/f8toggles/fabric8togglesservicedocker
 docker push $(minishift openshift registry)/f8toggles/fabric8togglesservicedocker
