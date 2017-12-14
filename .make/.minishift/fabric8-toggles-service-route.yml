@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Route
+metadata:
+  name: fabric8-toggles-service
+  namespace: f8toggles
+spec:
+  to:
+    kind: Service
+    name: fabric8-toggles-service
