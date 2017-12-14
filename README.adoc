@@ -149,7 +149,7 @@ To get this token, login to link:https://prod-preview.openshift.io[OSiO prod-pre
 
 ==== Docker build
 
-* build image from cent:os
+* build image from centos
 
 ```
 make docker-image-builder

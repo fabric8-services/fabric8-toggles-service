@@ -2,8 +2,6 @@ FROM centos:7
 MAINTAINER "Corinne Krych <ckrych@redhat.com>"
 ENV LANG=en_US.utf8
 ENV INSTALL_PREFIX=/usr/local/fabric8-toggles-service
-ENV KUBECONFIG_DIR=${F8_INSTALL_PREFIX}/.kube
-ENV KUBECONFIG=${KUBECONFIG_DIR}/config
 
 # Create a non-root user and a group with the same name: "fabric8"
 ENV F8_USER_NAME=fabric8
@@ -16,7 +14,6 @@ RUN cd /tmp \
     && rm -rfv openshift-origin*
 
 COPY bin/fabric8-toggles-service ${INSTALL_PREFIX}/bin/fabric8-toggles-service
-RUN mkdir ${KUBECONFIG_DIR} && chmod +777 ${KUBECONFIG_DIR}
 
 # From here onwards, any RUN, CMD, or ENTRYPOINT will be run under the following user
 USER ${F8_USER_NAME}
