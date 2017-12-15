@@ -102,21 +102,12 @@ You're now ready to deploy the service. For local deployment, we recommend:
 * Run:
 `minishift ip` to get the URL of the fabric8-toggles server. Replace MINISHIFT_IP with this value when reading further.
 
-[Note]
-====
-You can also start the service in your IDE. For example with GoLand, you can configure you remote debug
-
-image::images/debug.png[GoLand Debug]
-====
-
 `Configure unleash database`::
 
 * Go to fabric8-toggles-server admin console (ie: the unleash admin console)
    http://fabric8-toggles-f8toggles.MINISHIFT_IP.nip.io/#/strategies add a strategy with name `enableByGroupID` with a parameter `groupID`
 * Go to features list, add a feature with name "feature1", give a description and add the newly created strategy, enter `Red Hat`
-for `groupID`. Enable the feature, you should get:
-
-image::images/unleash_admin.png[admin console]
+for `groupID`. Enable the feature.
 
 [NOTE]
 This is a temporary settings, the fabric8-server should bootstrap those value. TODO.
@@ -130,18 +121,6 @@ This is a temporary settings, the fabric8-server should bootstrap those value. T
 
 ```
 $ curl -H "Authorization: Bearer XXX.YYY.ZZZ" http://localhost:8080/api/features
-{
-  "data":
-    [{
-      "attributes": {
-        "description":"Description of the feature",
-        "enabled":true,
-        "groupId":"Red Hat",
-        "name":"feature"
-        },
-      "id":"47441e34-e875-490f-9207-02f85b38dc21"}
-    }]
-}
 ```
 
 where `XXX.YYY.ZZZ` is your OAuth2 Keycloak token. Here we are targeting defaultKeycloakURL ie: `https://auth.prod-preview.openshift.io`.
@@ -182,3 +161,5 @@ See <<deploy>> section.
 make docker-image-deploy
 docker run --name toggles-service-container -p 8080:8080 -e F8_TOGGLES_URL=http://fabric8-toggles-MINISHIFT_IP.nip.io/api fabric8-toggles-service-deploy
 ```
+
+include::.make/.minishift/README.adoc[]

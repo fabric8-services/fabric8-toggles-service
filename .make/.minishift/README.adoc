@@ -1,6 +1,6 @@
-= Deploying f8toggle services on Minishift
+== Deployment on Minishift
 
-== Pre-requisites
+=== Pre-requisites
 * Install https://docs.openshift.org/latest/minishift/getting-started/installing.html[Minishift]
 * Install OpenShift command oc
 * Start minishift
@@ -17,14 +17,14 @@ oc config use-context minishift
 oc login -u developer:developer
 ```
 
-== Let's deploy `fabric8-toggles` server in OpenShift
+=== Let's deploy `fabric8-toggles` server in OpenShift
 
 Our ` fabric8-toggles` server needs a postgres database and a nodejs server.
 We're going to deploy our server in dev mode using minishift.
 
 Let's start with...
 
-=== Deploy database
+==== Deploy database
 
 We're going to deploy  a postgres database using a template that fetch an already built image for you.
 
@@ -47,7 +47,7 @@ svc/f8toggle-db   172.30.5.173   <none>        5432/TCP   8s
 po/f8toggle-db-1-0rtkj   1/1       Running   0          14s
 ```
 
-=== Build the docker image for the JS server
+==== Build the docker image for the JS server
 
 > Note: you can skip this step by pulling an existing image, in fabric8-toggles-deployment.yml 
 change `image: 172.30.1.1:5000/f8toggles/fabric8togglesdocker:latest`
@@ -67,7 +67,7 @@ docker push $(minishift openshift registry)/f8toggles/fabric8togglesdocker
 We will use `fabric8togglesdocker:latest` in our deployment script.
 Let's deploy...
 
-=== Deploy the nodejs server
+==== Deploy the nodejs server
 
 ```
 # back to .make/.minishift directory
@@ -123,7 +123,7 @@ oc logs -f fabric8-toggles-1-vvtm2
 ```
 where fabric8-toggles-1-vvtm2 is your ephemeral pod id.
 
-=== Build the docker image for the fabric8-toggles-service the client
+==== Build the docker image for the fabric8-toggles-service the client
 
 > Note: you can skip this step by pulling an existing image, in fabric8-toggles-service-deployment.yml
 change `image: 172.30.1.1:5000/f8toggles/fabric8togglesdocker:latest`
@@ -150,7 +150,7 @@ We will use `fabric8togglesservicedocker:latest` in our deployment script.
 Let's deploy...
 
 
-=== Deploy the fabric8-toggles-service, the client service
+==== Deploy the fabric8-toggles-service, the client service
 
 Run the commands:
 ```
