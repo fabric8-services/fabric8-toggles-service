@@ -134,21 +134,16 @@ we're going to build the docker image and make it available directly inside the 
 Go to the path where you clone https://github.com/fabric8-services/fabric8-toggles-service and type:
 
 ```
+# build locally on your host targetting linux env for final go binary
+make clean deps generate
+make build-linux
+# use Docker daemon from minishift
 eval $(minishift docker-env)
-docker login -u developer -p $(oc whoami -t) $(minishift openshift registry)
-make docker-image-build
-make docker-start
-make docker-clean
-# PROBLEM WITH detach mode, volume not mounted
-#make docker-clean
-#docker exec -t -i "fabric8-toggles-service-local-build" bash -ec 'make clean'
-#make: *** No rule to make target `clean'.  Stop.
-#make: *** [docker-clean] Error 2
-make docker-deps
-make docker-generate
-make docker-build
-make docker-image-deploy
+# build deployment image using linux binary
+make docker-image-deploy-linux
+# push to minishift docker hub
 docker tag fabric8-toggles-service-deploy $(minishift openshift registry)/f8toggles/fabric8togglesservicedocker
+docker login -u developer -p $(oc whoami -t) $(minishift openshift registry)
 docker push $(minishift openshift registry)/f8toggles/fabric8togglesservicedocker
 ```
 We will use `fabric8togglesservicedocker:latest` in our deployment script.
@@ -171,6 +166,8 @@ oc create -f fabric8-toggles-service-service.yml
 oc create -f fabric8-toggles-service-route.yml
 ```
 
-Once the route is created, go to f8toggle admin console:
-
-http://fabric8-toggles-f8toggles.<YOUR_IP>.nip.io (as displayed in your minishit console).
+To check id correctly deployed:
+```
+> curl http://fabric8-toggles-service-f8toggles.<YOUR_IP>.nip.io/api/features/Planner
+{"errors":[{"code":"jwt_security_error","detail":"missing header \"Authorization\"","id":"VU1H/HOa","status":"401","title":"Unauthorized"}]}
+```
