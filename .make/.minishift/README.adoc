@@ -152,12 +152,12 @@ Let's deploy...
 
 === Deploy the fabric8-toggles-service, the client service
 
-In `fabric8-toggles-config.yml` change the value of `fabric8.toggles.url` to match the URL you've just deployed in minishift.
+Run the commands:
 ```
 # back to .make/.minishift directory
 cd .make/.minishift/
 # use config map
-oc create -f fabric8-toggles-config.yml
+oc create cm fabric8-toggles-config --from-literal=toggles.url=http://$(oc get routes fabric8-toggles -o jsonpath={.spec.host})/api
 # fabric8-toggles-service deployment
 oc create -f fabric8-toggles-service-deployment.yml
 # fabric8-toggles-service service

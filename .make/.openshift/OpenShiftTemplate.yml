@@ -36,10 +36,7 @@ objects:
         containers:
         - env:
           - name: F8_TOGGLES_URL
-            valueFrom:
-              configMapKeyRef:
-                name: fabric8-toggles-config
-                key: fabric8.toggles.url
+            value: ${F8_TOGGLES_URL}
           image: registry.devshift.net/fabric8-services/fabric8-toggles-service:${IMAGE_TAG}
           imagePullPolicy: Always
           name: f8toggles
@@ -82,3 +79,5 @@ objects:
 parameters:
 - name: IMAGE_TAG
   value: latest
+- name: F8_TOGGLES_URL
+  value: http://f8toggles
