@@ -51,7 +51,7 @@ function run_tests_without_coverage() {
 
 function tag_push() {
   TARGET=$1
-  docker tag fabric8-tenant-deploy $TARGET
+  docker tag fabric8-toggles-service-deploy $TARGET
   docker push $TARGET
 }
 

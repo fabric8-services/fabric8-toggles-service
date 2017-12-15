@@ -93,7 +93,7 @@ build-linux: $(SOURCES)
 
 .PHONY: docker-image-deploylinux
 ## Creates a runnable image using the artifacts from the bin directory.
-docker-image-deploy-linux:
+docker-image-deploy-linux: bin/fabric8-toggles-service-linux
 	docker build -t $(DOCKER_IMAGE_DEPLOY) --build-arg BINARY=bin/fabric8-toggles-service-linux -f $(CUR_DIR)/Dockerfile.deploy $(CUR_DIR)
 
 .PHONY: docker-rm
