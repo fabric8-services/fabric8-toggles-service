@@ -37,7 +37,7 @@ function install_deps() {
 function prepare() {
   # Let's test
   make docker-start
-  make docker-check-go-format
+  make docker-format-go-code
   make docker-deps
   make docker-generate
   make docker-build
