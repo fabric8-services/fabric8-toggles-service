@@ -86,6 +86,16 @@ else
 		@echo "Docker container \"$(DOCKER_CONTAINER_NAME)\" created. Continue with \"make docker-deps\"."
 endif
 
+.PHONY: build-linux
+## Build for linux
+build-linux: $(SOURCES)
+	GO15VENDOREXPERIMENT=1 GOARCH=amd64 GOOS=linux go build -o bin/fabric8-toggles-service-linux
+
+.PHONY: docker-image-deploylinux
+## Creates a runnable image using the artifacts from the bin directory.
+docker-image-deploy-linux:
+	docker build -t $(DOCKER_IMAGE_DEPLOY) --build-arg BINARY=bin/fabric8-toggles-service-linux -f $(CUR_DIR)/Dockerfile.deploy $(CUR_DIR)
+
 .PHONY: docker-rm
 ## Removes the docker build container, if any (see "make docker-start").
 docker-rm:
