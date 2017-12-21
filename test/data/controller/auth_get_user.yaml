@@ -1,0 +1,24 @@
+---
+version: 1
+interactions:
+- request:
+    method: GET
+    url: http://auth/api/user
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      "data": {
+        "attributes": {
+          "bio": "",
+          "cluster": "https://api.starter-us-east-2.openshift.com",
+          "company": "Red Hat",
+          "email": "user@foo.com",
+          "fullName": "Foo Bar",
+          "username": "foobar",
+          "feature-group": "beta"
+        },
+        "id": "22269698-dc27-4ec4-bfc8-290bad6000",
+        "type": "identities"
+      }
+    }'

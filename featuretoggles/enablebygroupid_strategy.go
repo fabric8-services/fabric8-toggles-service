@@ -1,8 +1,6 @@
 package featuretoggles
 
 import (
-	"fmt"
-
 	unleashcontext "github.com/Unleash/unleash-client-go/context"
 )
 
@@ -22,6 +20,5 @@ func (s *EnableByGroupIDStrategy) Name() string {
 
 // IsEnabled returns `true` if the given context is compatible with the settings configured on the Unleash server
 func (s *EnableByGroupIDStrategy) IsEnabled(settings map[string]interface{}, ctx *unleashcontext.Context) bool {
-	fmt.Printf("Checking %+v vs %+v", settings, ctx)
 	return settings[GroupID] == ctx.Properties[GroupID]
 }

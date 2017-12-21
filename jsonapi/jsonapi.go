@@ -1,9 +1,10 @@
 package jsonapi
 
 import (
+	"strings"
+
 	d "github.com/goadesign/goa/design"
 	a "github.com/goadesign/goa/design/apidsl"
-	"strings"
 )
 
 //#############################################################################
@@ -82,6 +83,30 @@ func JSONList(name, description string, data *d.UserTypeDefinition, links *d.Use
 			}
 			if meta != nil {
 				a.Attribute("meta")
+			}
+			a.Attribute("data")
+			a.Attribute("included")
+			a.Required("data")
+		})
+	})
+}
+
+// JSONSingle creates a Single
+func JSONSingle(name, description string, data *d.UserTypeDefinition, links *d.UserTypeDefinition) *d.MediaTypeDefinition {
+	// WorkItemSingle is the media type for work items
+	return a.MediaType("application/vnd."+strings.ToLower(name)+"+json", func() {
+		a.UseTrait("jsonapi-media-type")
+		a.TypeName(name + "Single")
+		a.Description(description)
+		if links != nil {
+			a.Attribute("links", links)
+		}
+		a.Attribute("data", data)
+		a.Attribute("included", a.ArrayOf(d.Any), "An array of mixed types")
+		a.Required("data")
+		a.View("default", func() {
+			if links != nil {
+				a.Attribute("links")
 			}
 			a.Attribute("data")
 			a.Attribute("included")

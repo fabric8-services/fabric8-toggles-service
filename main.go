@@ -14,7 +14,7 @@ import (
 	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
-	"github.com/goadesign/goa/logging/logrus"
+	goalogrus "github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -59,7 +59,7 @@ func main() {
 	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
 	// init the toggle client
-	toggleClient, err := featuretoggles.NewClient(config)
+	toggleClient, err := featuretoggles.NewClient("fabric8-toggle-service", config)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
@@ -67,12 +67,8 @@ func main() {
 
 	}
 	// Mount "features" controller
-	featuresCtrl := controller.NewFeaturesController(service, toggleClient)
+	featuresCtrl := controller.NewFeaturesController(service, toggleClient, http.DefaultClient, config)
 	app.MountFeaturesController(service, featuresCtrl)
-
-	// Mount "feature" controller
-	featureCtrl := controller.NewFeatureController(service, toggleClient)
-	app.MountFeatureController(service, featureCtrl)
 
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.Handle("/", service.Mux)

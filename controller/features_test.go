@@ -1,124 +1,155 @@
-package controller
+package controller_test
 
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
 	"testing"
 
-	"github.com/Unleash/unleash-client-go"
-	unleashcontext "github.com/Unleash/unleash-client-go/context"
+	unleashapi "github.com/Unleash/unleash-client-go/api"
 	unleashstrategy "github.com/Unleash/unleash-client-go/strategy"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dnaeon/go-vcr/recorder"
+	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/app/test"
+	"github.com/fabric8-services/fabric8-toggles-service/controller"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
+	unleashtestclient "github.com/fabric8-services/fabric8-toggles-service/test/unleashclient"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-type MockUnleashClient struct {
-	Features   []MockFeature
-	Strategies []unleashstrategy.Strategy
+type TestFeatureControllerConfig struct {
+	authServiceURL string
 }
 
-// getStrategy looks-up the strategy by its name
-func (m *MockUnleashClient) getStrategy(name string) unleashstrategy.Strategy {
-	for _, s := range m.Strategies {
-		if s.Name() == name {
-			return s
-		}
-	}
-	return nil
+func (c *TestFeatureControllerConfig) GetAuthServiceURL() string {
+	return c.authServiceURL
 }
 
-// GetEnabledFeatures mimicks the behaviour of the real client, ie, it uses the strategies to verify the features
-func (m *MockUnleashClient) GetEnabledFeatures(ctx *unleashcontext.Context) []string {
-	result := make([]string, 0)
-	for _, f := range m.Features {
-		for _, s := range f.Strategies {
-			foundStrategy := m.getStrategy(s.Name())
-			if foundStrategy == nil {
-				// TODO: warnOnce missingStrategy
-				continue
-			}
-			if foundStrategy.IsEnabled(f.Parameters, ctx) {
-				result = append(result, f.Name)
-			}
-		}
-	}
-	return result
-}
-
-// IsFeatureEnabled mimicks the behaviour of the real client, always returns true
-func (c *MockUnleashClient) IsEnabled(feature string, options ...unleash.FeatureOption) (enabled bool) {
-	if feature == "ENABLED" {
-		return true
-	}
-	return false
-}
-
-func (m *MockUnleashClient) Close() error {
-	return nil
-}
-
-func (m *MockUnleashClient) Ready() <-chan bool {
-	return nil
-}
-
-type MockFeature struct {
-	Name       string
-	Parameters map[string]interface{}
-	Strategies []unleashstrategy.Strategy
-}
-
-func NewFakeFeatureList(length int) []MockFeature {
-	res := make([]MockFeature, length)
-	for i := 0; i < length; i++ {
-		f := MockFeature{}
-		f.Name = fmt.Sprintf("Feature %d", i)
-		if i%2 == 0 {
-			f.Parameters = map[string]interface{}{"groupID": "BETA"}
-		} else {
-			f.Parameters = map[string]interface{}{"groupID": "Red Hat"}
-		}
-		f.Strategies = []unleashstrategy.Strategy{&featuretoggles.EnableByGroupIDStrategy{}}
-		res = append(res, f)
-	}
-	return res
-}
-
-func TestListFeatures(t *testing.T) {
-	// given
+func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.FeaturesController) {
 	svc := goa.New("feature")
-	ctrl := FeaturesController{
-		Controller: svc.NewController("FeaturesController"),
-		client: &featuretoggles.Client{
-			UnleashClient: &MockUnleashClient{
-				Features:   NewFakeFeatureList(4),
-				Strategies: []unleashstrategy.Strategy{&featuretoggles.EnableByGroupIDStrategy{}},
+	// given
+	featureA := unleashapi.Feature{
+		Name:        "FeatureA",
+		Description: "Feature description",
+		Enabled:     true,
+		Strategies:  []unleashapi.Strategy{},
+	}
+
+	featureB := unleashapi.Feature{
+		Name:        "FeatureB",
+		Description: "Feature description",
+		Enabled:     true,
+		Strategies: []unleashapi.Strategy{
+			unleashapi.Strategy{
+				Name: featuretoggles.EnableByGroupID,
+				Parameters: map[string]interface{}{
+					"groupID": "internal",
+				},
 			},
 		},
 	}
 
-	t.Run("OK with jwt token without groupID claim", func(t *testing.T) {
-		// when/then
-		test.ListFeaturesUnauthorized(t, createInvalidContext(), svc, &ctrl)
+	featureC := unleashapi.Feature{
+		Name:        "FeatureC",
+		Description: "Feature description",
+		Enabled:     true,
+		Strategies: []unleashapi.Strategy{
+			unleashapi.Strategy{
+				Name: featuretoggles.EnableByGroupID,
+				Parameters: map[string]interface{}{
+					"groupID": "internal",
+				},
+			},
+			unleashapi.Strategy{
+				Name: featuretoggles.EnableByGroupID,
+				Parameters: map[string]interface{}{
+					"groupID": "experimental",
+				},
+			},
+			unleashapi.Strategy{
+				Name: featuretoggles.EnableByGroupID,
+				Parameters: map[string]interface{}{
+					"groupID": "beta",
+				},
+			},
+		},
+	}
+	unleashClient := &unleashtestclient.MockUnleashClient{
+		Features: []unleashapi.Feature{
+			featureA,
+			featureB,
+			featureC,
+		},
+		Strategies: []unleashstrategy.Strategy{
+			&featuretoggles.EnableByGroupIDStrategy{},
+		},
+	}
+
+	ctrl := controller.NewFeaturesController(svc,
+		featuretoggles.NewCustomClient(unleashClient, true),
+		&http.Client{
+			Transport: r.Transport,
+		},
+		&TestFeatureControllerConfig{
+			authServiceURL: "http://auth",
+		},
+	)
+	return svc, ctrl
+}
+
+func TestShowFeature(t *testing.T) {
+	// given
+	cassetteName := "../test/data/controller/auth_get_user"
+	_, err := os.Stat(fmt.Sprintf("%s.yaml", cassetteName))
+	require.NoError(t, err)
+	r, err := recorder.New(cassetteName)
+	require.NoError(t, err)
+	defer r.Stop()
+	svc, ctrl := NewFeaturesController(r)
+
+	t.Run("fail", func(t *testing.T) {
+		t.Run("unauthorized", func(t *testing.T) {
+			// when/then
+			test.ShowFeaturesUnauthorized(t, createInvalidContext(), svc, ctrl, "FeatureA")
+		})
+		t.Run("not found", func(t *testing.T) {
+			// when/then
+			test.ShowFeaturesNotFound(t, createValidContext(), svc, ctrl, "FeatureZ")
+		})
 	})
-	t.Run("OK with jwt token containing groupID", func(t *testing.T) {
-		// when
-		_, featuresList := test.ListFeaturesOK(t, createValidContext(), svc, &ctrl)
-		// then
-		require.Equal(t, 2, len(featuresList.Data))
-		assert.Equal(t, *featuresList.Data[0].Attributes.GroupID, "Red Hat")
-		assert.Equal(t, *featuresList.Data[1].Attributes.GroupID, "Red Hat")
+
+	t.Run("ok", func(t *testing.T) {
+		t.Run("feature enabled for user", func(t *testing.T) {
+			// when
+			_, appFeature := test.ShowFeaturesOK(t, createValidContext(), svc, ctrl, "FeatureC")
+			// then
+			require.NotNil(t, appFeature)
+			enablementLevel := "beta"
+			expectedFeatureData := &app.Feature{
+				ID:   "FeatureC",
+				Type: "features",
+				Attributes: &app.FeatureAttributes{
+					Description:     "Feature description",
+					Enabled:         true,
+					UserEnabled:     true,
+					EnablementLevel: &enablementLevel,
+				},
+			}
+			assert.Equal(t, expectedFeatureData, appFeature.Data)
+		})
 	})
-	//t.Run("Unauhorized - no token", func(t *testing.T) {
-	//	test.ListFeaturesUnauthorized(t, context.Background(), svc, ctrl)
-	//})
-	//t.Run("Not found", func(t *testing.T) {
-	//	test.ListFeaturesNotFound(t, context.Background(), svc, ctrl)
-	//})
+
+	// t.Run("OK with jwt token containing groupID for a non-enabled feature", func(t *testing.T) {
+	// 	// when
+	// 	feature := test.ShowFeatureOK(t, createValidContext(), svc, ctrl, "Planner")
+	// 	// then
+	// 	require.NotNil(t, feature)
+	// })
 }
 
 func createValidContext() context.Context {
@@ -129,7 +160,26 @@ func createValidContext() context.Context {
 }
 
 func createInvalidContext() context.Context {
-	claims := jwt.MapClaims{}
-	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
-	return goajwt.WithJWT(context.Background(), token)
+	return context.Background()
 }
+
+// func TestListFeatures(t *testing.T) {
+// 	// given
+// 	svc, ctrl := NewFeaturesController(nil)
+
+// 	t.Run("Unauhorized - no token", func(t *testing.T) {
+// 		// when/then
+// 		test.ListFeaturesUnauthorized(t, createInvalidContext(), svc, ctrl)
+// 	})
+// 	// t.Run("OK with jwt token containing groupID", func(t *testing.T) {
+// 	// 	// when
+// 	// 	_, featuresList := test.ListFeaturesOK(t, createValidContext(), svc, ctrl)
+// 	// 	// then
+// 	// 	require.Equal(t, 2, len(featuresList.Data))
+// 	// 	assert.Equal(t, *featuresList.Data[0].Attributes.GroupID, "experimental")
+// 	// 	assert.Equal(t, *featuresList.Data[1].Attributes.GroupID, "beta")
+// 	// })
+// 	// t.Run("Not found", func(t *testing.T) {
+// 	// 	test.ListFeaturesNotFound(t, createValidContext(), svc, ctrl)
+// 	// })
+// }
