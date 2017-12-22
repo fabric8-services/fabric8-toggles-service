@@ -1,5 +1,5 @@
-hash: 2653b3fcbdf5308164a8c71d6d6db21016200c73dcbfe7bf554a62eaf541e08c
-updated: 2017-12-20T14:48:38.825955916+01:00
+hash: 89c06f799f28bcb9227fb4014ae7a763764cd252333b584198f5d2b6aa00438a
+updated: 2017-12-22T15:41:12.169002035+01:00
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -17,7 +17,7 @@ imports:
   - cassette
   - recorder
 - name: github.com/fabric8-services/fabric8-auth
-  version: c014799ec8f08c480baf29094f72647159dfeedd
+  version: 7d611e15dbadcb86e39320f0a94390f0d336f38d
   repo: https://github.com/xcoulon/fabric8-auth
   vcs: git
   subpackages:
@@ -55,6 +55,7 @@ imports:
   - goagen/gen_controller
   - goagen/utils
   - goatest
+  - logging/logrus
   - middleware
   - middleware/gzip
   - middleware/security/jwt

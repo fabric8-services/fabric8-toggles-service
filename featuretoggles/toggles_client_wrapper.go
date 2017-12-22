@@ -37,6 +37,7 @@ func NewClient(serviceName string, config ToggleServiceConfiguration) (*Client, 
 		unleash.WithAppName(serviceName),
 		unleash.WithInstanceId(os.Getenv("HOSTNAME")),
 		unleash.WithUrl(config.GetTogglesURL()),
+		unleash.WithStrategies(&EnableByGroupIDStrategy{}),
 		unleash.WithMetricsInterval(1*time.Minute),
 		unleash.WithRefreshInterval(10*time.Second),
 		unleash.WithListener(&l),
@@ -82,14 +83,17 @@ func (c *Client) GetEnabledFeatures(groupID string) []string {
 }
 
 // IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given groupID
-func (c *Client) IsFeatureEnabled(feature unleashapi.Feature, groupID string) bool {
+func (c *Client) IsFeatureEnabled(feature unleashapi.Feature, level *string) bool {
+	if level == nil {
+		return false
+	}
 	if !c.clientListener.ready {
 		log.Warn(nil, nil, "unable to check if feature is enabled due to: client is not ready")
 		return false
 	}
 	ctx := unleashcontext.Context{
 		Properties: map[string]string{
-			GroupID: groupID,
+			GroupID: *level,
 		},
 	}
 	return c.UnleashClient.IsEnabled(feature.Name, unleash.WithContext(ctx))

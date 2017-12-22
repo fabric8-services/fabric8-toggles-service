@@ -26,7 +26,7 @@ import:
   - middleware/security/jwt
 - package: github.com/spf13/cobra
 - package: github.com/fabric8-services/fabric8-auth
-  version: c014799ec8f08c480baf29094f72647159dfeedd
+  version: 7d611e15dbadcb86e39320f0a94390f0d336f38d
   repo: https://github.com/xcoulon/fabric8-auth
   vcs: git
   subpackages:

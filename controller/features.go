@@ -82,7 +82,7 @@ func (c *FeaturesController) Show(ctx *app.ShowFeaturesContext) error {
 		log.Warn(ctx, map[string]interface{}{"feature_name": featureName}, "feature not found")
 		return errorhandler.JSONErrorResponse(ctx, errors.NewNotFoundError("feature", featureName))
 	}
-	enabledForUser := c.togglesClient.IsFeatureEnabled(*feature, *user.Data.Attributes.FeatureGroup)
+	enabledForUser := c.togglesClient.IsFeatureEnabled(*feature, user.Data.Attributes.FeatureLevel)
 	appFeature := convertFeature(ctx, feature, user, enabledForUser)
 	return ctx.OK(appFeature)
 }
