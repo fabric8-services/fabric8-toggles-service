@@ -24,7 +24,7 @@ func TestFeatureEnablementLevel(t *testing.T) {
 		Description: "Feature description",
 		Enabled:     true,
 		Strategies: []unleashapi.Strategy{
-			unleashapi.Strategy{
+			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
 					"groupID": "internal",
@@ -38,19 +38,19 @@ func TestFeatureEnablementLevel(t *testing.T) {
 		Description: "Feature description",
 		Enabled:     true,
 		Strategies: []unleashapi.Strategy{
-			unleashapi.Strategy{
+			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
 					"groupID": "internal",
 				},
 			},
-			unleashapi.Strategy{
+			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
 					"groupID": "experimental",
 				},
 			},
-			unleashapi.Strategy{
+			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
 					"groupID": "beta",

@@ -20,8 +20,8 @@ type UnleashClient interface {
 
 // Client the toggle client
 type Client struct {
-	ready         bool
-	UnleashClient UnleashClient
+	UnleashClient  UnleashClient
+	clientListener *UnleashClientListener
 }
 
 // ToggleServiceConfiguration the configuration to the Toggle service
@@ -32,7 +32,7 @@ type ToggleServiceConfiguration interface {
 
 // NewClient returns a new client to the toggle feature service including the default underlying unleash client initialized
 func NewClient(serviceName string, config ToggleServiceConfiguration) (*Client, error) {
-	l := clientListener{}
+	l := UnleashClientListener{ready: false}
 	unleashclient, err := unleash.NewClient(
 		unleash.WithAppName(serviceName),
 		unleash.WithInstanceId(os.Getenv("HOSTNAME")),
@@ -44,16 +44,20 @@ func NewClient(serviceName string, config ToggleServiceConfiguration) (*Client, 
 	if err != nil {
 		return nil, err
 	}
-	result := NewCustomClient(unleashclient, false)
-	l.client = result
+	result := NewCustomClient(unleashclient, &l)
 	return result, nil
 }
 
+// NewClientWithState returns a new client to the toggle feature service with a pre-initialized unleash client listener
+func NewClientWithState(unleashclient UnleashClient, ready bool) *Client {
+	return NewCustomClient(unleashclient, &UnleashClientListener{ready: ready})
+}
+
 // NewCustomClient returns a new client to the toggle feature service with a pre-initialized unleash client
-func NewCustomClient(unleashclient UnleashClient, ready bool) *Client {
+func NewCustomClient(unleashclient UnleashClient, l *UnleashClientListener) *Client {
 	result := &Client{
-		UnleashClient: unleashclient,
-		ready:         ready,
+		UnleashClient:  unleashclient,
+		clientListener: l,
 	}
 	return result
 }
@@ -79,7 +83,7 @@ func (c *Client) GetEnabledFeatures(groupID string) []string {
 
 // IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given groupID
 func (c *Client) IsFeatureEnabled(feature unleashapi.Feature, groupID string) bool {
-	if !c.ready {
+	if !c.clientListener.ready {
 		log.Warn(nil, nil, "unable to check if feature is enabled due to: client is not ready")
 		return false
 	}

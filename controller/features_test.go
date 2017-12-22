@@ -45,7 +45,7 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 		Description: "Feature description",
 		Enabled:     true,
 		Strategies: []unleashapi.Strategy{
-			unleashapi.Strategy{
+			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
 					"groupID": "internal",
@@ -59,19 +59,19 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 		Description: "Feature description",
 		Enabled:     true,
 		Strategies: []unleashapi.Strategy{
-			unleashapi.Strategy{
+			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
 					"groupID": "internal",
 				},
 			},
-			unleashapi.Strategy{
+			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
 					"groupID": "experimental",
 				},
 			},
-			unleashapi.Strategy{
+			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
 					"groupID": "beta",
@@ -91,7 +91,7 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 	}
 
 	ctrl := controller.NewFeaturesController(svc,
-		featuretoggles.NewCustomClient(unleashClient, true),
+		featuretoggles.NewClientWithState(unleashClient, true),
 		&http.Client{
 			Transport: r.Transport,
 		},
