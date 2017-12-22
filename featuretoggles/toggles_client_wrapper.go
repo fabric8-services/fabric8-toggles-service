@@ -39,7 +39,7 @@ func NewClient(serviceName string, config ToggleServiceConfiguration) (*Client, 
 		unleash.WithUrl(config.GetTogglesURL()),
 		unleash.WithMetricsInterval(1*time.Minute),
 		unleash.WithRefreshInterval(10*time.Second),
-		unleash.WithListener(l),
+		unleash.WithListener(&l),
 	)
 	if err != nil {
 		return nil, err
