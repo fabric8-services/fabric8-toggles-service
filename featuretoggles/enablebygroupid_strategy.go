@@ -2,6 +2,7 @@ package featuretoggles
 
 import (
 	unleashcontext "github.com/Unleash/unleash-client-go/context"
+	"github.com/fabric8-services/fabric8-wit/log"
 )
 
 const (
@@ -20,5 +21,6 @@ func (s *EnableByGroupIDStrategy) Name() string {
 
 // IsEnabled returns `true` if the given context is compatible with the settings configured on the Unleash server
 func (s *EnableByGroupIDStrategy) IsEnabled(settings map[string]interface{}, ctx *unleashcontext.Context) bool {
+	log.Debug(nil, map[string]interface{}{"settings_group_id": settings[GroupID], "propeties_group_id": ctx.Properties[GroupID]}, "checking if feature is enabled for user...")
 	return settings[GroupID] == ctx.Properties[GroupID]
 }

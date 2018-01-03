@@ -27,7 +27,7 @@ func TestFeatureEnablementLevel(t *testing.T) {
 			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
-					"groupID": "internal",
+					"groupID": featuretoggles.InternalLevel,
 				},
 			},
 		},
@@ -41,19 +41,19 @@ func TestFeatureEnablementLevel(t *testing.T) {
 			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
-					"groupID": "internal",
+					"groupID": featuretoggles.InternalLevel,
 				},
 			},
 			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
-					"groupID": "experimental",
+					"groupID": featuretoggles.ExperimentalLevel,
 				},
 			},
 			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
-					"groupID": "beta",
+					"groupID": featuretoggles.BetaLevel,
 				},
 			},
 		},
@@ -74,14 +74,14 @@ func TestFeatureEnablementLevel(t *testing.T) {
 			// when
 			level := featuretoggles.ComputeEnablementLevel(context.Background(), featureB, internalUser)
 			// then
-			assert.Equal(t, "internal", *level)
+			assert.Equal(t, featuretoggles.InternalLevel, *level)
 		})
 
 		t.Run("feature with multiple strategies", func(t *testing.T) {
 			// when
 			level := featuretoggles.ComputeEnablementLevel(context.Background(), featureC, internalUser)
 			// then
-			assert.Equal(t, "beta", *level)
+			assert.Equal(t, featuretoggles.BetaLevel, *level)
 		})
 	})
 
@@ -109,7 +109,7 @@ func TestFeatureEnablementLevel(t *testing.T) {
 			// when
 			level := featuretoggles.ComputeEnablementLevel(context.Background(), featureC, internalUser)
 			// then
-			assert.Equal(t, "beta", *level)
+			assert.Equal(t, featuretoggles.BetaLevel, *level)
 		})
 	})
 

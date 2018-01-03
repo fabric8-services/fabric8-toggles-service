@@ -2,7 +2,9 @@ package controller_test
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -10,12 +12,15 @@ import (
 	unleashapi "github.com/Unleash/unleash-client-go/api"
 	unleashstrategy "github.com/Unleash/unleash-client-go/strategy"
 	jwt "github.com/dgrijalva/jwt-go"
+	jwtrequest "github.com/dgrijalva/jwt-go/request"
+	"github.com/dnaeon/go-vcr/cassette"
 	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/app/test"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 	unleashtestclient "github.com/fabric8-services/fabric8-toggles-service/test/unleashclient"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/assert"
@@ -36,7 +41,7 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 	featureA := unleashapi.Feature{
 		Name:        "FeatureA",
 		Description: "Feature description",
-		Enabled:     true,
+		Enabled:     false,
 		Strategies:  []unleashapi.Strategy{},
 	}
 
@@ -48,7 +53,7 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
-					"groupID": "internal",
+					"groupID": featuretoggles.InternalLevel,
 				},
 			},
 		},
@@ -62,19 +67,13 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
-					"groupID": "internal",
+					"groupID": featuretoggles.InternalLevel,
 				},
 			},
 			{
 				Name: featuretoggles.EnableByGroupID,
 				Parameters: map[string]interface{}{
-					"groupID": "experimental",
-				},
-			},
-			{
-				Name: featuretoggles.EnableByGroupID,
-				Parameters: map[string]interface{}{
-					"groupID": "beta",
+					"groupID": featuretoggles.ExperimentalLevel,
 				},
 			},
 		},
@@ -109,6 +108,25 @@ func TestShowFeature(t *testing.T) {
 	require.NoError(t, err)
 	r, err := recorder.New(cassetteName)
 	require.NoError(t, err)
+	_, err = PublicKey()
+	require.NoError(t, err)
+
+	// custom cassette matcher that will compare the HTTP requests' token subject with the `sub` header of the recorded data (the yaml file)
+	r.SetMatcher(func(httpRequest *http.Request, cassetteRequest cassette.Request) bool {
+		// look-up the JWT's "sub" claim and compare with the request
+		token, err := jwtrequest.ParseFromRequest(httpRequest, jwtrequest.AuthorizationHeaderExtractor, func(*jwt.Token) (interface{}, error) {
+			return PublicKey()
+		})
+		if err != nil {
+			log.Panic(nil, map[string]interface{}{"error": err.Error()}, "failed to parse token from request")
+		}
+		claims := token.Claims.(jwt.MapClaims)
+		if sub, found := cassetteRequest.Headers["sub"]; found {
+			return sub[0] == claims["sub"]
+		}
+		return false
+	})
+	require.NoError(t, err)
 	defer r.Stop()
 	svc, ctrl := NewFeaturesController(r)
 
@@ -119,43 +137,78 @@ func TestShowFeature(t *testing.T) {
 		})
 		t.Run("not found", func(t *testing.T) {
 			// when/then
-			test.ShowFeaturesNotFound(t, createValidContext(), svc, ctrl, "FeatureZ")
+			test.ShowFeaturesNotFound(t, createValidContext(t, "user_foo"), svc, ctrl, "FeatureZ")
 		})
 	})
 
-	t.Run("ok", func(t *testing.T) {
-		t.Run("feature enabled for user", func(t *testing.T) {
-			// when
-			_, appFeature := test.ShowFeaturesOK(t, createValidContext(), svc, ctrl, "FeatureC")
-			// then
-			require.NotNil(t, appFeature)
-			enablementLevel := "beta"
-			expectedFeatureData := &app.Feature{
-				ID:   "FeatureC",
-				Type: "features",
-				Attributes: &app.FeatureAttributes{
-					Description:     "Feature description",
-					Enabled:         true,
-					UserEnabled:     true,
-					EnablementLevel: &enablementLevel,
-				},
-			}
-			assert.Equal(t, expectedFeatureData, appFeature.Data)
-		})
+	t.Run("disabled for user", func(t *testing.T) {
+		// when
+		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, "FeatureC")
+		// then
+		require.NotNil(t, appFeature)
+		enablementLevel := featuretoggles.ExperimentalLevel
+		expectedFeatureData := &app.Feature{
+			ID:   "FeatureC",
+			Type: "features",
+			Attributes: &app.FeatureAttributes{
+				Description:     "Feature description",
+				Enabled:         true,
+				UserEnabled:     true,
+				EnablementLevel: &enablementLevel,
+			},
+		}
+		assert.Equal(t, expectedFeatureData, appFeature.Data)
 	})
 
-	// t.Run("OK with jwt token containing groupID for a non-enabled feature", func(t *testing.T) {
-	// 	// when
-	// 	feature := test.ShowFeatureOK(t, createValidContext(), svc, ctrl, "Planner")
-	// 	// then
-	// 	require.NotNil(t, feature)
-	// })
+	t.Run("disabled for all", func(t *testing.T) {
+		// when
+		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, "FeatureA")
+		// then
+		require.NotNil(t, appFeature)
+		expectedFeatureData := &app.Feature{
+			ID:   "FeatureA",
+			Type: "features",
+			Attributes: &app.FeatureAttributes{
+				Description:     "Feature description",
+				Enabled:         false,
+				UserEnabled:     false,
+				EnablementLevel: nil,
+			},
+		}
+		assert.Equal(t, expectedFeatureData, appFeature.Data)
+	})
+
+	t.Run("enabled for user", func(t *testing.T) {
+		// when
+		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_bar"), svc, ctrl, "FeatureC")
+		// then
+		require.NotNil(t, appFeature)
+		enablementLevel := featuretoggles.ExperimentalLevel
+		expectedFeatureData := &app.Feature{
+			ID:   "FeatureC",
+			Type: "features",
+			Attributes: &app.FeatureAttributes{
+				Description:     "Feature description",
+				Enabled:         true,
+				UserEnabled:     true,
+				EnablementLevel: &enablementLevel,
+			},
+		}
+		assert.Equal(t, expectedFeatureData, appFeature.Data)
+	})
+
 }
 
-func createValidContext() context.Context {
+func createValidContext(t *testing.T, userID string) context.Context {
 	claims := jwt.MapClaims{}
-	claims["company"] = "Red Hat" // TODO replace by BETA
+	claims["sub"] = userID
 	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
+	// use the test private key to sign the token
+	key, err := PrivateKey()
+	require.NoError(t, err)
+	signed, err := token.SignedString(key)
+	require.NoError(t, err)
+	token.Raw = signed
 	return goajwt.WithJWT(context.Background(), token)
 }
 
@@ -177,9 +230,25 @@ func createInvalidContext() context.Context {
 // 	// 	// then
 // 	// 	require.Equal(t, 2, len(featuresList.Data))
 // 	// 	assert.Equal(t, *featuresList.Data[0].Attributes.GroupID, "experimental")
-// 	// 	assert.Equal(t, *featuresList.Data[1].Attributes.GroupID, "beta")
+// 	// 	assert.Equal(t, *featuresList.Data[1].Attributes.GroupID, featuretoggles.BetaLevel)
 // 	// })
 // 	// t.Run("Not found", func(t *testing.T) {
 // 	// 	test.ListFeaturesNotFound(t, createValidContext(), svc, ctrl)
 // 	// })
 // }
+
+func PrivateKey() (*rsa.PrivateKey, error) {
+	rsaPrivateKey, err := ioutil.ReadFile("../test/private_key.pem")
+	if err != nil {
+		return nil, err
+	}
+	return jwt.ParseRSAPrivateKeyFromPEM(rsaPrivateKey)
+}
+
+func PublicKey() (*rsa.PublicKey, error) {
+	rsaPublicKey, err := ioutil.ReadFile("../test/public_key.pem")
+	if err != nil {
+		return nil, err
+	}
+	return jwt.ParseRSAPublicKeyFromPEM(rsaPublicKey)
+}

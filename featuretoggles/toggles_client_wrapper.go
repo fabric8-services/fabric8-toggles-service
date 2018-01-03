@@ -85,6 +85,7 @@ func (c *Client) GetEnabledFeatures(groupID string) []string {
 // IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given groupID
 func (c *Client) IsFeatureEnabled(feature unleashapi.Feature, level *string) bool {
 	if level == nil {
+		log.Warn(nil, nil, "unable to check if feature is enabled due to: level is nil")
 		return false
 	}
 	if !c.clientListener.ready {

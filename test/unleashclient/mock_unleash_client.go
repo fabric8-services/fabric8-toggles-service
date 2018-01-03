@@ -14,8 +14,8 @@ type MockUnleashClient struct {
 }
 
 // getStrategy looks-up the strategy by its name
-func (m *MockUnleashClient) getStrategy(name string) unleashstrategy.Strategy {
-	for _, s := range m.Strategies {
+func (c *MockUnleashClient) getStrategy(name string) unleashstrategy.Strategy {
+	for _, s := range c.Strategies {
 		if s.Name() == name {
 			return s
 		}
@@ -24,11 +24,11 @@ func (m *MockUnleashClient) getStrategy(name string) unleashstrategy.Strategy {
 }
 
 // GetEnabledFeatures mimicks the behaviour of the real client, ie, it uses the strategies to verify the features
-func (m *MockUnleashClient) GetEnabledFeatures(ctx *unleashcontext.Context) []string {
+func (c *MockUnleashClient) GetEnabledFeatures(ctx *unleashcontext.Context) []string {
 	result := make([]string, 0)
-	for _, f := range m.Features {
+	for _, f := range c.Features {
 		for _, s := range f.Strategies {
-			foundStrategy := m.getStrategy(s.Name)
+			foundStrategy := c.getStrategy(s.Name)
 			if foundStrategy == nil {
 				// TODO: warnOnce missingStrategy
 				continue
@@ -44,7 +44,7 @@ func (m *MockUnleashClient) GetEnabledFeatures(ctx *unleashcontext.Context) []st
 // IsEnabled mimicks the behaviour of the real client
 func (c *MockUnleashClient) IsEnabled(name string, options ...unleash.FeatureOption) (enabled bool) {
 	defer func() {
-		log.Debug(nil, map[string]interface{}{"feature_name": name, "enabled": enabled}, "checking if feature is enabled")
+		log.Debug(nil, map[string]interface{}{"feature_name": name, "enabled": enabled}, "checked if feature is enabled for user...")
 	}()
 	for _, f := range c.Features {
 		if f.Name == name {

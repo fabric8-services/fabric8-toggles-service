@@ -4,6 +4,8 @@ interactions:
 - request:
     method: GET
     url: http://auth/api/user
+    headers:
+      sub: ["user_foo"] # will be compared against the `sub` claim in the incoming request's token
   response:
     status: 200 OK
     code: 200
@@ -14,9 +16,32 @@ interactions:
           "cluster": "https://api.starter-us-east-2.openshift.com",
           "company": "Red Hat",
           "email": "user@foo.com",
-          "fullName": "Foo Bar",
-          "username": "foobar",
-          "feature-group": "beta"
+          "fullName": "John Foo",
+          "username": "foo",
+          "feature-level": "beta"
+        },
+        "id": "22269698-dc27-4ec4-bfc8-290bad6000",
+        "type": "identities"
+      }
+    }'
+- request:
+    method: GET
+    url: http://auth/api/user
+    headers:
+      sub: ["user_bar"] # will be compared against the `sub` claim in the incoming request's token
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      "data": {
+        "attributes": {
+          "bio": "",
+          "cluster": "https://api.starter-us-east-2.openshift.com",
+          "company": "Red Hat",
+          "email": "user@bar.com",
+          "fullName": "Jeff Bar",
+          "username": "bar",
+          "feature-level": "experimental"
         },
         "id": "22269698-dc27-4ec4-bfc8-290bad6000",
         "type": "identities"
