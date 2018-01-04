@@ -36,10 +36,10 @@ func ComputeEnablementLevel(ctx context.Context, feature *unleashapi.Feature, in
 	// iterate on feature's strategies
 	for _, s := range feature.Strategies {
 		// log.Debug(ctx, map[string]interface{}{"feature_name": feature.Name, "enablement_level": enablementLevel, "strategy_name": s.Name}, "computing enablement level")
-		if s.Name == EnableByGroupID {
-			if groupID, found := s.Parameters["groupID"]; found {
-				if groupIDStr, ok := groupID.(string); ok {
-					featureLevel := toFeatureLevel(groupIDStr, internalUser)
+		if s.Name == EnableByLevel {
+			if level, found := s.Parameters["level"]; found {
+				if levelStr, ok := level.(string); ok {
+					featureLevel := toFeatureLevel(levelStr, internalUser)
 					// log.Debug(ctx, map[string]interface{}{"feature_name": feature.Name, "enablement_level": enablementLevel, "strategy_group": featureLevel}, "computing enablement level")
 					// beta > experimental > internal (if user is a RH internal)
 					if featureLevel > enablementLevel {

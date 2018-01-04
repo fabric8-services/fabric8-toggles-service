@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 )
 
+// MockUnleashClient a mock unleash
 type MockUnleashClient struct {
 	Features   []unleashapi.Feature
 	Strategies []unleashstrategy.Strategy
@@ -48,6 +49,7 @@ func (c *MockUnleashClient) IsEnabled(name string, options ...unleash.FeatureOpt
 	}()
 	for _, f := range c.Features {
 		if f.Name == name {
+			// simplified approach here in this mock implementation: just returning the enablement of the feature without applying the strategies (otherwise, this would mean re-implementing the client logic here...)
 			return f.Enabled
 		}
 	}

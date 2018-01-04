@@ -27,11 +27,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type TestFeatureControllerConfig struct {
+type TestfeatureBontrollerConfig struct {
 	authServiceURL string
 }
 
-func (c *TestFeatureControllerConfig) GetAuthServiceURL() string {
+func (c *TestfeatureBontrollerConfig) GetAuthServiceURL() string {
 	return c.authServiceURL
 }
 
@@ -46,34 +46,20 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 	}
 
 	featureB := unleashapi.Feature{
-		Name:        "FeatureB",
+		Name:        "featureB",
 		Description: "Feature description",
 		Enabled:     true,
 		Strategies: []unleashapi.Strategy{
 			{
-				Name: featuretoggles.EnableByGroupID,
+				Name: featuretoggles.EnableByLevel,
 				Parameters: map[string]interface{}{
-					"groupID": featuretoggles.InternalLevel,
-				},
-			},
-		},
-	}
-
-	featureC := unleashapi.Feature{
-		Name:        "FeatureC",
-		Description: "Feature description",
-		Enabled:     true,
-		Strategies: []unleashapi.Strategy{
-			{
-				Name: featuretoggles.EnableByGroupID,
-				Parameters: map[string]interface{}{
-					"groupID": featuretoggles.InternalLevel,
+					"level": featuretoggles.InternalLevel,
 				},
 			},
 			{
-				Name: featuretoggles.EnableByGroupID,
+				Name: featuretoggles.EnableByLevel,
 				Parameters: map[string]interface{}{
-					"groupID": featuretoggles.ExperimentalLevel,
+					"level": featuretoggles.ExperimentalLevel,
 				},
 			},
 		},
@@ -82,10 +68,10 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 		Features: []unleashapi.Feature{
 			featureA,
 			featureB,
-			featureC,
+			featureB,
 		},
 		Strategies: []unleashstrategy.Strategy{
-			&featuretoggles.EnableByGroupIDStrategy{},
+			&featuretoggles.EnableByLevelStrategy{},
 		},
 	}
 
@@ -94,7 +80,7 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 		&http.Client{
 			Transport: r.Transport,
 		},
-		&TestFeatureControllerConfig{
+		&TestfeatureBontrollerConfig{
 			authServiceURL: "http://auth",
 		},
 	)
@@ -142,50 +128,53 @@ func TestShowFeature(t *testing.T) {
 	})
 
 	t.Run("disabled for user", func(t *testing.T) {
-		// when
-		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, "FeatureC")
-		// then
-		require.NotNil(t, appFeature)
-		enablementLevel := featuretoggles.ExperimentalLevel
-		expectedFeatureData := &app.Feature{
-			ID:   "FeatureC",
-			Type: "features",
-			Attributes: &app.FeatureAttributes{
-				Description:     "Feature description",
-				Enabled:         true,
-				UserEnabled:     true,
-				EnablementLevel: &enablementLevel,
-			},
-		}
-		assert.Equal(t, expectedFeatureData, appFeature.Data)
-	})
 
-	t.Run("disabled for all", func(t *testing.T) {
-		// when
-		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, "FeatureA")
-		// then
-		require.NotNil(t, appFeature)
-		expectedFeatureData := &app.Feature{
-			ID:   "FeatureA",
-			Type: "features",
-			Attributes: &app.FeatureAttributes{
-				Description:     "Feature description",
-				Enabled:         false,
-				UserEnabled:     false,
-				EnablementLevel: nil,
-			},
-		}
-		assert.Equal(t, expectedFeatureData, appFeature.Data)
+		t.Run("did not opt-in", func(t *testing.T) {
+			// when
+			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_baz"), svc, ctrl, "featureB")
+			// then
+			require.NotNil(t, appFeature)
+			enablementLevel := featuretoggles.ExperimentalLevel
+			expectedFeatureData := &app.Feature{
+				ID:   "featureB",
+				Type: "features",
+				Attributes: &app.FeatureAttributes{
+					Description:     "Feature description",
+					Enabled:         true,
+					UserEnabled:     false,
+					EnablementLevel: &enablementLevel,
+				},
+			}
+			assert.Equal(t, expectedFeatureData, appFeature.Data)
+		})
+
+		t.Run("disabled for all", func(t *testing.T) {
+			// when
+			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, "FeatureA")
+			// then
+			require.NotNil(t, appFeature)
+			expectedFeatureData := &app.Feature{
+				ID:   "FeatureA",
+				Type: "features",
+				Attributes: &app.FeatureAttributes{
+					Description:     "Feature description",
+					Enabled:         false,
+					UserEnabled:     false,
+					EnablementLevel: nil,
+				},
+			}
+			assert.Equal(t, expectedFeatureData, appFeature.Data)
+		})
 	})
 
 	t.Run("enabled for user", func(t *testing.T) {
 		// when
-		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_bar"), svc, ctrl, "FeatureC")
+		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_bar"), svc, ctrl, "featureB")
 		// then
 		require.NotNil(t, appFeature)
 		enablementLevel := featuretoggles.ExperimentalLevel
 		expectedFeatureData := &app.Feature{
-			ID:   "FeatureC",
+			ID:   "featureB",
 			Type: "features",
 			Attributes: &app.FeatureAttributes{
 				Description:     "Feature description",
@@ -195,6 +184,7 @@ func TestShowFeature(t *testing.T) {
 			},
 		}
 		assert.Equal(t, expectedFeatureData, appFeature.Data)
+
 	})
 
 }
@@ -224,13 +214,13 @@ func createInvalidContext() context.Context {
 // 		// when/then
 // 		test.ListFeaturesUnauthorized(t, createInvalidContext(), svc, ctrl)
 // 	})
-// 	// t.Run("OK with jwt token containing groupID", func(t *testing.T) {
+// 	// t.Run("OK with jwt token containing level", func(t *testing.T) {
 // 	// 	// when
 // 	// 	_, featuresList := test.ListFeaturesOK(t, createValidContext(), svc, ctrl)
 // 	// 	// then
 // 	// 	require.Equal(t, 2, len(featuresList.Data))
-// 	// 	assert.Equal(t, *featuresList.Data[0].Attributes.GroupID, "experimental")
-// 	// 	assert.Equal(t, *featuresList.Data[1].Attributes.GroupID, featuretoggles.BetaLevel)
+// 	// 	assert.Equal(t, *featuresList.Data[0].Attributes.level, "experimental")
+// 	// 	assert.Equal(t, *featuresList.Data[1].Attributes.level, featuretoggles.BetaLevel)
 // 	// })
 // 	// t.Run("Not found", func(t *testing.T) {
 // 	// 	test.ListFeaturesNotFound(t, createValidContext(), svc, ctrl)

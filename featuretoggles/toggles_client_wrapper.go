@@ -37,7 +37,7 @@ func NewClient(serviceName string, config ToggleServiceConfiguration) (*Client, 
 		unleash.WithAppName(serviceName),
 		unleash.WithInstanceId(os.Getenv("HOSTNAME")),
 		unleash.WithUrl(config.GetTogglesURL()),
-		unleash.WithStrategies(&EnableByGroupIDStrategy{}),
+		unleash.WithStrategies(&EnableByLevelStrategy{}),
 		unleash.WithMetricsInterval(1*time.Minute),
 		unleash.WithRefreshInterval(10*time.Second),
 		unleash.WithListener(&l),
@@ -74,10 +74,10 @@ func (c *Client) GetFeature(groupID string) *unleashapi.Feature {
 }
 
 // GetEnabledFeatures returns the names of enabled features for the given user
-func (c *Client) GetEnabledFeatures(groupID string) []string {
+func (c *Client) GetEnabledFeatures(level string) []string {
 	return c.UnleashClient.GetEnabledFeatures(&unleashcontext.Context{
 		Properties: map[string]string{
-			GroupID: groupID,
+			Level: level,
 		},
 	})
 }
@@ -85,7 +85,7 @@ func (c *Client) GetEnabledFeatures(groupID string) []string {
 // IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given groupID
 func (c *Client) IsFeatureEnabled(feature unleashapi.Feature, level *string) bool {
 	if level == nil {
-		log.Warn(nil, nil, "unable to check if feature is enabled due to: level is nil")
+		log.Warn(nil, nil, "skipping check for toggle feature due to: user level is nil")
 		return false
 	}
 	if !c.clientListener.ready {
@@ -94,7 +94,7 @@ func (c *Client) IsFeatureEnabled(feature unleashapi.Feature, level *string) boo
 	}
 	ctx := unleashcontext.Context{
 		Properties: map[string]string{
-			GroupID: *level,
+			Level: *level,
 		},
 	}
 	return c.UnleashClient.IsEnabled(feature.Name, unleash.WithContext(ctx))

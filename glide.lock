@@ -17,7 +17,7 @@ imports:
   - cassette
   - recorder
 - name: github.com/fabric8-services/fabric8-auth
-  version: d201995ece5a00e7c0cf3f4f332bde65c44a2356
+  version: 16d57bb43444ce50e6f35604ae346614b01fb8d0
   repo: https://github.com/xcoulon/fabric8-auth
   vcs: git
   subpackages:
