@@ -14,7 +14,7 @@ import (
 	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
-	"github.com/goadesign/goa/logging/logrus"
+	goalogrus "github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -73,6 +73,15 @@ func main() {
 	// Mount "feature" controller
 	featureCtrl := controller.NewFeatureController(service, toggleClient)
 	app.MountFeatureController(service, featureCtrl)
+
+	// Mount "status" controller
+	statusCtrl := controller.NewStatusController(service, config)
+	app.MountStatusController(service, statusCtrl)
+
+	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
+	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
+	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
+	log.Logger().Infoln("Dev mode:       ", config.IsDeveloperModeEnabled())
 
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.Handle("/", service.Mux)
