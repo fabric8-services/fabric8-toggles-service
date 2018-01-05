@@ -70,6 +70,15 @@ func main() {
 	featuresCtrl := controller.NewFeaturesController(service, toggleClient, http.DefaultClient, config)
 	app.MountFeaturesController(service, featuresCtrl)
 
+	// Mount "status" controller
+	statusCtrl := controller.NewStatusController(service, config)
+	app.MountStatusController(service, statusCtrl)
+
+	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
+	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
+	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
+	log.Logger().Infoln("Dev mode:       ", config.IsDeveloperModeEnabled())
+
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.Handle("/", service.Mux)
 

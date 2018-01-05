@@ -17,8 +17,21 @@ GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
 
+
+COMMIT=$(shell git rev-parse HEAD)
+GITUNTRACKEDCHANGES := $(shell git status --porcelain --untracked-files=no)
+ifneq ($(GITUNTRACKEDCHANGES),)
+COMMIT := $(COMMIT)-dirty
+endif
+BUILD_TIME=`date -u '+%Y-%m-%dT%H:%M:%SZ'`
+
+PACKAGE_NAME := github.com/fabric8-services/fabric8-toggles-service
+
 # For the global "clean" target all targets in this variable will be executed
 CLEAN_TARGETS =
+
+# Pass in build time variables to main
+LDFLAGS=-ldflags "-X ${PACKAGE_NAME}/controller.Commit=${COMMIT} -X ${PACKAGE_NAME}/controller.BuildTime=${BUILD_TIME}"
 
 $(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
@@ -131,7 +144,7 @@ regenerate: clean-generated generate
 .PHONY: build
 ## Build fabric8-toggles-service.
 build: deps format-go-code generate
-	go build -ldflags="$(LDFLAGS)" -o bin/$(BINARY)
+	go build -v $(LDFLAGS) -o bin/$(BINARY)
 
 .PHONY: run
 ## Run fabric8-toggles-service.
