@@ -62,3 +62,6 @@ spec:
       terminationGracePeriodSeconds: 30
   triggers:
   - type: ConfigChange
+parameters:
+- name: IMAGE_TAG
+  value: latest
