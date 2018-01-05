@@ -1,67 +1,72 @@
+kind: Template
 apiVersion: v1
-kind: DeploymentConfig
 metadata:
-  annotations:
-  labels:
-    service: f8-toggles-service
-  name: f8-toggles-service
-spec:
-  replicas: 2
-  selector:
-    service: f8-toggles-service
-  template:
-    metadata:
-      labels:
-        service: f8-toggles-service
-    spec:
-      containers:
-      - env:
-        - name: F8_AUTH_URL
-          valueFrom:
-            configMapRef:
-              name: f8-toggles-service
-              key: auth.url
-        - name: F8_KEYCLOAK_URL
-          valueFrom:
-            configMapKeyRef:
-              name: f8-toggles-service
-              key: keycloak.url
-        image: registry.devshift.net/fabric8-services/f8-toggles-service:${IMAGE_TAG}
-        imagePullPolicy: Always
-        livenessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /api/status
-            port: 8080
-            scheme: HTTP
-          initialDelaySeconds: 1
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
-        name: f8-toggles-service
-        ports:
-        - containerPort: 8080
-          protocol: TCP
-        readinessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /api/status
-            port: 8080
-            scheme: HTTP
-          initialDelaySeconds: 1
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
-        resources: {}
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      terminationGracePeriodSeconds: 30
-  triggers:
-  - type: ConfigChange
+  name: auth
+objects:
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    annotations:
+    labels:
+      service: f8-toggles-service
+    name: f8-toggles-service
+  spec:
+    replicas: 2
+    selector:
+      service: f8-toggles-service
+    template:
+      metadata:
+        labels:
+          service: f8-toggles-service
+      spec:
+        containers:
+        - env:
+          - name: F8_AUTH_URL
+            valueFrom:
+              configMapRef:
+                name: f8-toggles-service
+                key: auth.url
+          - name: F8_KEYCLOAK_URL
+            valueFrom:
+              configMapKeyRef:
+                name: f8-toggles-service
+                key: keycloak.url
+          image: registry.devshift.net/fabric8-services/f8-toggles-service:${IMAGE_TAG}
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/status
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: f8-toggles-service
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/status
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    triggers:
+    - type: ConfigChange
 parameters:
 - name: IMAGE_TAG
   value: latest
