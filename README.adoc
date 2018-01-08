@@ -162,4 +162,4 @@ make docker-image-deploy
 docker run --name toggles-service-container -p 8080:8080 -e F8_TOGGLES_URL=http://fabric8-toggles-MINISHIFT_IP.nip.io/api fabric8-toggles-service-deploy
 ```
 === Deployment on Minishift
-See .make/.minishift/README.adoc for more info how to deploy toggles-services and its dependencies.
+See http://.make/.minishift/README.adoc[] for more info how to deploy toggles-services and its dependencies.
