@@ -1,0 +1,71 @@
+---
+version: 1
+interactions:
+- request:
+    method: GET
+    url: http://auth/api/user
+    headers:
+      sub: ["user_foo"] # will be compared against the `sub` claim in the incoming request's token
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      "data": {
+        "attributes": {
+          "bio": "",
+          "cluster": "https://api.starter-us-east-2.openshift.com",
+          "company": "Red Hat",
+          "email": "user@foo.com",
+          "fullName": "John Foo",
+          "username": "foo",
+          "featureLevel": "beta"
+        },
+        "id": "22269698-dc27-4ec4-bfc8-290bad6000",
+        "type": "identities"
+      }
+    }'
+- request:
+    method: GET
+    url: http://auth/api/user
+    headers:
+      sub: ["user_bar"] # will be compared against the `sub` claim in the incoming request's token
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      "data": {
+        "attributes": {
+          "bio": "",
+          "cluster": "https://api.starter-us-east-2.openshift.com",
+          "company": "Red Hat",
+          "email": "user@bar.com",
+          "fullName": "Jeff Bar",
+          "username": "bar",
+          "featureLevel": "experimental"
+        },
+        "id": "22269698-dc27-4ec4-bfc8-290bad6000",
+        "type": "identities"
+      }
+    }'
+- request:
+    method: GET
+    url: http://auth/api/user
+    headers:
+      sub: ["user_baz"] # will be compared against the `sub` claim in the incoming request's token
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      "data": {
+        "attributes": {
+          "bio": "",
+          "cluster": "https://api.starter-us-east-2.openshift.com",
+          "company": "Red Hat",
+          "email": "user@baz.com",
+          "fullName": "Jeff Baz",
+          "username": "baz"
+        },
+        "id": "22269698-dc27-4ec4-bfc8-290bad6000",
+        "type": "identities"
+      }
+    }'

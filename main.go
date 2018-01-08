@@ -59,7 +59,7 @@ func main() {
 	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
 	// init the toggle client
-	toggleClient, err := featuretoggles.NewClient(config)
+	toggleClient, err := featuretoggles.NewClient("fabric8-toggle-service", config)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
@@ -67,12 +67,8 @@ func main() {
 
 	}
 	// Mount "features" controller
-	featuresCtrl := controller.NewFeaturesController(service, toggleClient)
+	featuresCtrl := controller.NewFeaturesController(service, toggleClient, http.DefaultClient, config)
 	app.MountFeaturesController(service, featuresCtrl)
-
-	// Mount "feature" controller
-	featureCtrl := controller.NewFeatureController(service, toggleClient)
-	app.MountFeatureController(service, featureCtrl)
 
 	// Mount "status" controller
 	statusCtrl := controller.NewStatusController(service, config)

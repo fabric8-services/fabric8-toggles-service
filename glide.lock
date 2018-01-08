@@ -1,20 +1,29 @@
-hash: 2bf0e4b1afe25f1320441311cb2abf5a133a2f8018d17fe450f13e8b39573e2d
-updated: 2017-11-23T16:44:47.490547557+01:00
+hash: 98e523d4464a041fed0ba28319d6b0a76ad104ac6be9a056b020ee11191f657a
+updated: 2018-01-08T10:36:34.231225964+01:00
 imports:
+- name: github.com/ajg/form
+  version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
 - name: github.com/armon/go-metrics
   version: 9a4b6e10bed6220a1665955aa2b75afc91eb10b3
 - name: github.com/dgrijalva/jwt-go
   version: dbeaa9332f19a944acb5736b4456cfcc02140e29
+  subpackages:
+  - request
 - name: github.com/dimfeld/httppath
-  version: ee938bf735983d53694d79138ad9820efff94c92
+  version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
   version: 13dde8a00d96b369e7398490fd8a3af9ca114b84
-- name: github.com/fabric8-services/fabric8-auth
-  version: da575b14ac9ceb113f18f1c1cab75be256460d64
+- name: github.com/dnaeon/go-vcr
+  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
-  - configuration
+  - cassette
+  - recorder
+- name: github.com/fabric8-services/fabric8-auth
+  version: f67317193c3108895f853f80f9330c1a65b11004
+  subpackages:
   - design
   - errors
+  - goamiddleware
   - log
   - login/tokencontext
   - rest
@@ -25,6 +34,7 @@ imports:
   - configuration
   - errors
   - goamiddleware
+  - goasupport
   - log
   - rest
 - name: github.com/fsnotify/fsnotify
@@ -56,7 +66,7 @@ imports:
   subpackages:
   - simplelru
 - name: github.com/hashicorp/hcl
-  version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
+  version: 37ab263305aaeb501a60eb16863e808d426e37f2
   subpackages:
   - hcl/ast
   - hcl/parser
@@ -67,11 +77,11 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/magiconair/properties
-  version: be5ece7dd465ab0765a9682137865547526d1dfb
+  version: d419a98cdbed11a922bf76f257b7c4be79b50e73
 - name: github.com/manveru/faker
-  version: 9fbc68a78c4dbc7914e1a23f88f126bea4383b97
+  version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
 - name: github.com/mitchellh/mapstructure
-  version: 06020f85339e21b2478f756a78e295255ffa4d6a
+  version: 5a0325d7fafaac12dda6e7fb8bd222ec1b69875e
 - name: github.com/pelletier/go-buffruneio
   version: c37440a7cf42ac63b919c752ca73a85067e05992
 - name: github.com/pelletier/go-toml
@@ -79,69 +89,76 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/satori/go.uuid
-  version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/sirupsen/logrus
-  version: 95cd2b9c79aa5e72ab0bc69b7ccc2be15bf850f6
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
 - name: github.com/spf13/afero
-  version: 8d919cbe7e2627e417f3e45c3c0e489a5b7e2536
+  version: 2f30b2a92c0e5700bcfe4715891adb1f2a7a406d
   subpackages:
   - mem
 - name: github.com/spf13/cast
-  version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
+  version: 24b6558033ffe202bf42f0f3b870dcc798dd2ba8
 - name: github.com/spf13/cobra
-  version: 1be1d2841c773c01bee8289f55f7463b6e2c2539
+  version: 9495bc009a56819bdb0ddbc1a373e29c140bc674
 - name: github.com/spf13/jwalterweatherman
-  version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
+  version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
-  version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
+  version: 5ccb023bc27df288a957c5e994cd44fd19619465
 - name: github.com/spf13/viper
-  version: 4dddf7c62e16bce5807744018f5b753bfe21bbd2
+  version: 651d9d916abc3c3d6a91a12549495caba5edffd2
+- name: github.com/stretchr/testify
+  version: b91bfb9ebec76498946beb6af7c0230c7cc7ba6c
+  subpackages:
+  - assert
+  - require
+  - suite
+- name: github.com/Unleash/unleash-client-go
+  version: 93cc55402333b57e65acfa1aca920931da654133
+  repo: https://github.com/xcoulon/unleash-client-go
+  vcs: git
+  subpackages:
+  - api
+  - context
+  - internal/api
+  - internal/strategies
+  - strategy
 - name: github.com/zach-klippenstein/goregen
   version: 795b5e3961ea1912fde60af417ad85e86acc0d6a
 - name: golang.org/x/crypto
-  version: 9f005a07e0d31d45e6656d241bb5c0f2efd4bc94
+  version: 81e90905daefcd6fd217b62423c0908922eadb30
   subpackages:
   - ed25519
   - ed25519/internal/edwards25519
-  - ssh/terminal
 - name: golang.org/x/net
-  version: c7086645de248775cbf2373cf5ca4d2fa664b8c1
+  version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
   subpackages:
   - websocket
 - name: golang.org/x/sys
-  version: 82aafbf43bf885069dc71b7e7c2f9d7a614d47da
+  version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
   subpackages:
   - unix
-  - windows
 - name: golang.org/x/text
-  version: 88f656faf3f37f690df1a32515b479415e1a6769
+  version: 47a200a05c8b3fd1b698571caecbb68beb2611ec
   subpackages:
   - transform
   - unicode/norm
+- name: golang.org/x/tools
+  version: a888bfdffa4526cc6987572bca9a2c6b7758290f
+  subpackages:
+  - go/ast/astutil
 - name: gopkg.in/square/go-jose.v2
   version: f8f38de21b4dcd69d0413faf231983f5fd6634b1
   subpackages:
   - cipher
   - json
 - name: gopkg.in/yaml.v2
-  version: 287cf08546ab5e7e37d55a84f7ed3fd1db036de5
-- name: github.com/Unleash/unleash-client-go
-  version: 377eea70f16806a6f68414ceed39b1f750eafe1f
-  repo: https://github.com/xcoulon/unleash-client-go
-  vcs: git
+  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
-  - context
-  - internal/api
-  - internal/strategies
-  - strategy
-- name: github.com/stretchr/testify
-  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
-  - assert
-  - require
-  - suite
-- name: golang.org/x/tools
-  version: a888bfdffa4526cc6987572bca9a2c6b7758290f
-  subpackages:
-  - go/ast/astutil
-testImports: []
+  - difflib
