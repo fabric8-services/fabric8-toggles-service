@@ -23,7 +23,7 @@ objects:
         - env:
           - name: F8_AUTH_URL
             valueFrom:
-              configMapRef:
+              configMapKeyRef:
                 name: f8-toggles-service
                 key: auth.url
           - name: F8_KEYCLOAK_URL
