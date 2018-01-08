@@ -2,7 +2,7 @@ package featuretoggles
 
 import (
 	unleash "github.com/Unleash/unleash-client-go"
-	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-auth/log"
 )
 
 // UnleashClientListener a listener to the unleash client. Retains the `ready` state of the client it is registered to.

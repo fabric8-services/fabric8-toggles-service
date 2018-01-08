@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/fabric8-services/fabric8-auth/log"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/errors"
-	"github.com/fabric8-services/fabric8-wit/log"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"

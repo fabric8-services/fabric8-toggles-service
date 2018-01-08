@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	unleashapi "github.com/Unleash/unleash-client-go/api"
-	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-auth/log"
 )
 
 // FeatureLevel custom type for feature level constants as integers, for comparisons

@@ -1,5 +1,5 @@
-hash: 98e523d4464a041fed0ba28319d6b0a76ad104ac6be9a056b020ee11191f657a
-updated: 2018-01-08T10:36:34.231225964+01:00
+hash: f1ff3a2c6dab4ed7a1de6f8a6de73f545e275594b2dfd66fe3d62166b06ed058
+updated: 2018-01-08T14:26:33.101447895+01:00
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -24,19 +24,11 @@ imports:
   - design
   - errors
   - goamiddleware
+  - goasupport
   - log
   - login/tokencontext
   - rest
   - token
-- name: github.com/fabric8-services/fabric8-wit
-  version: ed49dd4d0678a97d13ba469efbd5cdea2e5dbe67
-  subpackages:
-  - configuration
-  - errors
-  - goamiddleware
-  - goasupport
-  - log
-  - rest
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/goadesign/goa
@@ -48,6 +40,7 @@ imports:
   - design
   - design/apidsl
   - dslengine
+  - encoding/form
   - goagen
   - goagen/codegen
   - goagen/gen_app

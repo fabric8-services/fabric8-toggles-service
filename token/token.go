@@ -8,7 +8,7 @@ import (
 	authclient "github.com/fabric8-services/fabric8-auth/token"
 	"github.com/fabric8-services/fabric8-toggles-service/auth/authservice"
 	"github.com/fabric8-services/fabric8-toggles-service/configuration"
-	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-auth/log"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"

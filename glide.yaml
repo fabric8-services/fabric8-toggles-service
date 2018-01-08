@@ -35,11 +35,6 @@ import:
   - log
 - package: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
-- package: github.com/fabric8-services/fabric8-wit
-  version: ed49dd4d0678a97d13ba469efbd5cdea2e5dbe67
-  subpackages:
-  - goamiddleware
-  - log
 - package: github.com/Unleash/unleash-client-go
   version: 93cc55402333b57e65acfa1aca920931da654133
   repo: https://github.com/xcoulon/unleash-client-go

@@ -6,13 +6,13 @@ import (
 
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 
+	witmiddleware "github.com/fabric8-services/fabric8-auth/goamiddleware"
+	"github.com/fabric8-services/fabric8-auth/log"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/configuration"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
 	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
 	"github.com/fabric8-services/fabric8-toggles-service/token"
-	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	goalogrus "github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
