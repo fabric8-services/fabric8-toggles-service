@@ -7,7 +7,7 @@ import (
 	"github.com/Unleash/unleash-client-go"
 	unleashapi "github.com/Unleash/unleash-client-go/api"
 	unleashcontext "github.com/Unleash/unleash-client-go/context"
-	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-auth/log"
 )
 
 type UnleashClient interface {
