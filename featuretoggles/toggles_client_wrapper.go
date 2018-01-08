@@ -82,7 +82,7 @@ func (c *Client) GetEnabledFeatures(level string) []string {
 	})
 }
 
-// IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given groupID
+// IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given level
 func (c *Client) IsFeatureEnabled(feature unleashapi.Feature, level *string) bool {
 	if level == nil {
 		log.Warn(nil, nil, "skipping check for toggle feature due to: user level is nil")
