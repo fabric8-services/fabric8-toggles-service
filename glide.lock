@@ -1,5 +1,5 @@
-hash: de372e3278d14896daca0c60396a5d18f5ee23d6e87a83b737b531747e4173d2
-updated: 2018-01-08T10:13:49.536585537+01:00
+hash: 98e523d4464a041fed0ba28319d6b0a76ad104ac6be9a056b020ee11191f657a
+updated: 2018-01-08T10:36:34.231225964+01:00
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -40,7 +40,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/goadesign/goa
-  version: fc29b77a218fb9e190849c81911ed12d25e771de
+  version: 5646a430cdeb66983d5ace3384e0a667c185abc7
   vcs: git
   subpackages:
   - client
@@ -89,7 +89,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/satori/go.uuid
-  version: b061729afc07e77a8aa4fad0a2fd840958f1942a
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/sirupsen/logrus
   version: c078b1e43f58d563c74cebe63c85789e76ddb627
 - name: github.com/spf13/afero
