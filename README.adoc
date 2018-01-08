@@ -105,9 +105,9 @@ You're now ready to deploy the service. For local deployment, we recommend:
 `Configure unleash database`::
 
 * Go to fabric8-toggles-server admin console (ie: the unleash admin console)
-   http://fabric8-toggles-f8toggles.MINISHIFT_IP.nip.io/#/strategies add a strategy with name `enableByGroupID` with a parameter `groupID`
+   http://fabric8-toggles-f8toggles.MINISHIFT_IP.nip.io/#/strategies add a strategy with name `enableByLevel` with a parameter `level`
 * Go to features list, add a feature with name "feature1", give a description and add the newly created strategy, enter `Red Hat`
-for `groupID`. Enable the feature.
+for `level`. Enable the feature.
 
 [NOTE]
 This is a temporary settings, the fabric8-server should bootstrap those value. TODO.
