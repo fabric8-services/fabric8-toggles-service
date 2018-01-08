@@ -6,7 +6,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 
-	witmiddleware "github.com/fabric8-services/fabric8-auth/goamiddleware"
+	authmiddleware "github.com/fabric8-services/fabric8-auth/goamiddleware"
 	"github.com/fabric8-services/fabric8-auth/log"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/configuration"
@@ -53,7 +53,7 @@ func main() {
 		}, "failed to create token manager")
 	}
 	// Middleware that extracts and stores the token in the context
-	jwtMiddlewareTokenContext := witmiddleware.TokenContext(tokenManager.PublicKeys(), nil, app.NewJWTSecurity())
+	jwtMiddlewareTokenContext := authmiddleware.TokenContext(tokenManager.PublicKeys(), nil, app.NewJWTSecurity())
 	service.Use(jwtMiddlewareTokenContext)
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
