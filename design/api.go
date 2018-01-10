@@ -11,7 +11,7 @@ var _ = a.API("feature", func() {
 	a.Version("1.0")
 	a.Host("openshift.io")
 	a.Scheme("http")
-	a.BasePath("/")
+	a.BasePath("/api")
 	a.Consumes("application/json")
 	a.Produces("application/json")
 
