@@ -67,6 +67,22 @@ objects:
         terminationGracePeriodSeconds: 30
     triggers:
     - type: ConfigChange
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: f8toggles-service
+    labels:
+      service: f8toggles-service
+  spec:
+    ports:
+      - name: "8080"
+        protocol: TCP
+        port: 80
+        targetPort: 8080
+    selector:
+      service: f8toggles-service
+    type: ClusterIP
+    sessionAffinity: null
 parameters:
 - name: IMAGE_TAG
   value: latest
