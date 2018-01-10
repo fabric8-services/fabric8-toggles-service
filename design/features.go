@@ -48,7 +48,7 @@ var featureAttributes = a.Type("FeatureAttributes", func() {
 })
 
 var _ = a.Resource("features", func() {
-	a.BasePath("/api/features")
+	a.BasePath("/features")
 
 	a.Action("show", func() {
 		a.Security("jwt")
