@@ -8,30 +8,30 @@ objects:
   metadata:
     annotations:
     labels:
-      service: f8-toggles-service
-    name: f8-toggles-service
+      service: f8toggles-service
+    name: f8toggles-service
   spec:
     replicas: 2
     selector:
-      service: f8-toggles-service
+      service: f8toggles-service
     template:
       metadata:
         labels:
-          service: f8-toggles-service
+          service: f8toggles-service
       spec:
         containers:
         - env:
           - name: F8_AUTH_URL
             valueFrom:
               configMapKeyRef:
-                name: f8-toggles-service
+                name: f8toggles-service
                 key: auth.url
           - name: F8_KEYCLOAK_URL
             valueFrom:
               configMapKeyRef:
-                name: f8-toggles-service
+                name: f8toggles-service
                 key: keycloak.url
-          image: registry.devshift.net/fabric8-services/f8-toggles-service:${IMAGE_TAG}
+          image: registry.devshift.net/fabric8-services/fabric8-toggles-service:${IMAGE_TAG}
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3
@@ -43,7 +43,7 @@ objects:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
-          name: f8-toggles-service
+          name: f8toggles-service
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -67,6 +67,22 @@ objects:
         terminationGracePeriodSeconds: 30
     triggers:
     - type: ConfigChange
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: f8toggles-service
+    labels:
+      service: f8toggles-service
+  spec:
+    ports:
+      - name: "8080"
+        protocol: TCP
+        port: 80
+        targetPort: 8080
+    selector:
+      service: f8toggles-service
+    type: ClusterIP
+    sessionAffinity: null
 parameters:
 - name: IMAGE_TAG
   value: latest

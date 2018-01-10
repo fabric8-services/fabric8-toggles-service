@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: f8-toggles-service
+  name: f8toggles-service
 data:
   auth.url: https://auth.prod-preview.openshift.io
   keycloak.url: https://sso.prod-preview.openshift.io
