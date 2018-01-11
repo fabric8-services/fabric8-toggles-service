@@ -71,7 +71,10 @@ var _ = a.Resource("features", func() {
 		a.Routing(
 			a.GET(""),
 		)
-		a.Description("Show a list of features enabled.")
+		a.Params(func() {
+			a.Param("names", a.ArrayOf(d.String), "names")
+		})
+		a.Description("Show a list of features by their names.")
 		a.Response(d.OK, featureList)
 		a.Response(d.BadRequest, jsonapi.JSONAPIErrors)
 		a.Response(d.NotFound, jsonapi.JSONAPIErrors)

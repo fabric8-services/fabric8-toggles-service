@@ -10,9 +10,9 @@ import (
 	"github.com/fabric8-services/fabric8-auth/log"
 )
 
+// UnleashClient the interface to the unleash client
 type UnleashClient interface {
 	Ready() <-chan bool
-	GetEnabledFeatures(ctx *unleashcontext.Context) []string
 	GetFeature(name string) *unleashapi.Feature
 	IsEnabled(feature string, options ...unleash.FeatureOption) (enabled bool)
 	Close() error
@@ -69,17 +69,20 @@ func (c *Client) Close() error {
 }
 
 // GetFeature returns the feature given its name
-func (c *Client) GetFeature(groupID string) *unleashapi.Feature {
-	return c.UnleashClient.GetFeature(groupID)
+func (c *Client) GetFeature(name string) *unleashapi.Feature {
+	return c.UnleashClient.GetFeature(name)
 }
 
-// GetEnabledFeatures returns the names of enabled features for the given user
-func (c *Client) GetEnabledFeatures(level string) []string {
-	return c.UnleashClient.GetEnabledFeatures(&unleashcontext.Context{
-		Properties: map[string]string{
-			Level: level,
-		},
-	})
+// GetFeatures returns the features fron their names
+func (c *Client) GetFeatures(names []string) []*unleashapi.Feature {
+	result := make([]*unleashapi.Feature, 0)
+	for _, name := range names {
+		f := c.UnleashClient.GetFeature(name)
+		if f != nil {
+			result = append(result, f)
+		}
+	}
+	return result
 }
 
 // IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given level

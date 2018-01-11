@@ -46,7 +46,7 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 	}
 
 	featureB := unleashapi.Feature{
-		Name:        "featureB",
+		Name:        "FeatureB",
 		Description: "Feature description",
 		Enabled:     true,
 		Strategies: []unleashapi.Strategy{
@@ -98,20 +98,7 @@ func TestShowFeature(t *testing.T) {
 	require.NoError(t, err)
 
 	// custom cassette matcher that will compare the HTTP requests' token subject with the `sub` header of the recorded data (the yaml file)
-	r.SetMatcher(func(httpRequest *http.Request, cassetteRequest cassette.Request) bool {
-		// look-up the JWT's "sub" claim and compare with the request
-		token, err := jwtrequest.ParseFromRequest(httpRequest, jwtrequest.AuthorizationHeaderExtractor, func(*jwt.Token) (interface{}, error) {
-			return PublicKey()
-		})
-		if err != nil {
-			log.Panic(nil, map[string]interface{}{"error": err.Error()}, "failed to parse token from request")
-		}
-		claims := token.Claims.(jwt.MapClaims)
-		if sub, found := cassetteRequest.Headers["sub"]; found {
-			return sub[0] == claims["sub"]
-		}
-		return false
-	})
+	r.SetMatcher(JWTMatcher())
 	require.NoError(t, err)
 	defer r.Stop()
 	svc, ctrl := NewFeaturesController(r)
@@ -186,7 +173,88 @@ func TestShowFeature(t *testing.T) {
 		assert.Equal(t, expectedFeatureData, appFeature.Data)
 
 	})
+}
 
+func TestListFeatures(t *testing.T) {
+	// given
+	cassetteName := "../test/data/controller/auth_get_user"
+	_, err := os.Stat(fmt.Sprintf("%s.yaml", cassetteName))
+	require.NoError(t, err)
+	r, err := recorder.New(cassetteName)
+	require.NoError(t, err)
+	_, err = PublicKey()
+	require.NoError(t, err)
+
+	// custom cassette matcher that will compare the HTTP requests' token subject with the `sub` header of the recorded data (the yaml file)
+	r.SetMatcher(JWTMatcher())
+	require.NoError(t, err)
+	defer r.Stop()
+	svc, ctrl := NewFeaturesController(r)
+
+	t.Run("fail", func(t *testing.T) {
+		t.Run("unauthorized", func(t *testing.T) {
+			// when/then
+			test.ListFeaturesUnauthorized(t, createInvalidContext(), svc, ctrl, []string{"FeatureA", "FeatureB"})
+		})
+	})
+
+	t.Run("ok", func(t *testing.T) {
+		t.Run("2 matches", func(t *testing.T) {
+			// when
+			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, []string{"FeatureA", "FeatureB"})
+			// then
+			experimentalLevel := featuretoggles.ExperimentalLevel
+			expectedData := []*app.Feature{
+				&app.Feature{
+					ID:   "FeatureA",
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     "Feature description",
+						Enabled:         false,
+						UserEnabled:     false,
+						EnablementLevel: nil,
+					},
+				},
+				&app.Feature{
+					ID:   "FeatureB",
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     "Feature description",
+						Enabled:         true,
+						UserEnabled:     true,
+						EnablementLevel: &experimentalLevel,
+					},
+				},
+			}
+			assert.Equal(t, expectedData, featuresList.Data)
+		})
+
+		t.Run("no feature found", func(t *testing.T) {
+			// when
+			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
+			// then
+			expectedData := []*app.Feature{}
+			assert.Equal(t, expectedData, featuresList.Data)
+		})
+	})
+
+}
+
+func JWTMatcher() cassette.Matcher {
+	return func(httpRequest *http.Request, cassetteRequest cassette.Request) bool {
+		// look-up the JWT's "sub" claim and compare with the request
+		token, err := jwtrequest.ParseFromRequest(httpRequest, jwtrequest.AuthorizationHeaderExtractor, func(*jwt.Token) (interface{}, error) {
+			return PublicKey()
+		})
+		if err != nil {
+			log.Panic(nil, map[string]interface{}{"error": err.Error()}, "failed to parse token from request")
+		}
+		claims := token.Claims.(jwt.MapClaims)
+		if sub, found := cassetteRequest.Headers["sub"]; found {
+			return sub[0] == claims["sub"]
+		}
+		return false
+	}
 }
 
 func createValidContext(t *testing.T, userID string) context.Context {
@@ -205,27 +273,6 @@ func createValidContext(t *testing.T, userID string) context.Context {
 func createInvalidContext() context.Context {
 	return context.Background()
 }
-
-// func TestListFeatures(t *testing.T) {
-// 	// given
-// 	svc, ctrl := NewFeaturesController(nil)
-
-// 	t.Run("Unauhorized - no token", func(t *testing.T) {
-// 		// when/then
-// 		test.ListFeaturesUnauthorized(t, createInvalidContext(), svc, ctrl)
-// 	})
-// 	// t.Run("OK with jwt token containing level", func(t *testing.T) {
-// 	// 	// when
-// 	// 	_, featuresList := test.ListFeaturesOK(t, createValidContext(), svc, ctrl)
-// 	// 	// then
-// 	// 	require.Equal(t, 2, len(featuresList.Data))
-// 	// 	assert.Equal(t, *featuresList.Data[0].Attributes.level, "experimental")
-// 	// 	assert.Equal(t, *featuresList.Data[1].Attributes.level, featuretoggles.BetaLevel)
-// 	// })
-// 	// t.Run("Not found", func(t *testing.T) {
-// 	// 	test.ListFeaturesNotFound(t, createValidContext(), svc, ctrl)
-// 	// })
-// }
 
 func PrivateKey() (*rsa.PrivateKey, error) {
 	rsaPrivateKey, err := ioutil.ReadFile("../test/private_key.pem")

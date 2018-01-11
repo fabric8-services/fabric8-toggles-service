@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	unleashapi "github.com/Unleash/unleash-client-go/api"
-	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-auth/goasupport"
 	"github.com/fabric8-services/fabric8-auth/log"
 	"github.com/fabric8-services/fabric8-auth/rest"
@@ -52,17 +51,13 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 		log.Error(ctx.Context, map[string]interface{}{}, "Unable to retrieve token")
 		return errorhandler.JSONErrorResponse(ctx, errors.NewUnauthorizedError("Missing JSON Web Token in request header"))
 	}
-	if groupID, ok := jwtToken.Claims.(jwtgo.MapClaims)["company"].(string); ok {
-		enableFeatures := c.getEnabledFeatures(ctx, groupID)
-		log.Debug(ctx, nil, "FEATURES: %s", enableFeatures)
-		return ctx.OK(enableFeatures)
+	user, err := c.getUserProfile(ctx)
+	if err != nil {
+		return errorhandler.JSONErrorResponse(ctx, err)
 	}
-	return errorhandler.JSONErrorResponse(ctx, errors.NewUnauthorizedError("Incomplete JWT token"))
-}
-
-func (c *FeaturesController) getEnabledFeatures(ctx *app.ListFeaturesContext, groupID string) *app.FeatureList {
-	listOfFeatures := c.togglesClient.GetEnabledFeatures(groupID)
-	return convertFeatures(ctx, listOfFeatures, groupID)
+	features := c.togglesClient.GetFeatures(ctx.Names)
+	appFeatures := c.convertFeatures(ctx, features, user)
+	return ctx.OK(appFeatures)
 }
 
 // Show runs the show action.
@@ -82,8 +77,7 @@ func (c *FeaturesController) Show(ctx *app.ShowFeaturesContext) error {
 		log.Warn(ctx, map[string]interface{}{"feature_name": featureName}, "feature not found")
 		return errorhandler.JSONErrorResponse(ctx, errors.NewNotFoundError("feature", featureName))
 	}
-	enabledForUser := c.togglesClient.IsFeatureEnabled(*feature, user.Data.Attributes.FeatureLevel)
-	appFeature := convertFeature(ctx, feature, user, enabledForUser)
+	appFeature := c.convertFeature(ctx, feature, user)
 	return ctx.OK(appFeature)
 }
 
@@ -128,44 +122,41 @@ func (c *FeaturesController) newAuthClient(ctx context.Context) (*authservice.Cl
 	return authClient, nil
 }
 
-func convertFeature(ctx context.Context, feature *unleashapi.Feature, user *authservice.User, enabledForUser bool) *app.FeatureSingle {
-	userEmail := user.Data.Attributes.Email
-	internalUser := false
-	// internal users have may be able to access the feature by opting-in to the `internal` level of features.
-	if strings.HasSuffix(*userEmail, "@redhat.com") {
-		internalUser = true
+func (c *FeaturesController) convertFeatures(ctx context.Context, features []*unleashapi.Feature, user *authservice.User) *app.FeatureList {
+	result := make([]*app.Feature, 0)
+	for _, feature := range features {
+		result = append(result, c.convertFeatureData(ctx, feature, user))
 	}
-	log.Debug(ctx, map[string]interface{}{"internal_user": internalUser}, "converting feature")
-	// TODO include the `email verified` field
-	return &app.FeatureSingle{
-		Data: &app.Feature{
-			ID:   feature.Name,
-			Type: "features",
-			Attributes: &app.FeatureAttributes{
-				Description:     feature.Description,
-				Enabled:         feature.Enabled,
-				EnablementLevel: featuretoggles.ComputeEnablementLevel(ctx, feature, internalUser),
-				UserEnabled:     enabledForUser,
-			},
-		},
+	return &app.FeatureList{
+		Data: result,
 	}
 }
 
-func convertFeatures(ctx context.Context, list []string, groupID string) *app.FeatureList {
-	res := app.FeatureList{}
-	for _, name := range list {
-		// TODO remove ID, make unleash client return description
-		descriptionFeature := "Description of the feature"
-		enabledFeature := true
-		feature := app.Feature{
-			ID: name,
-			Attributes: &app.FeatureAttributes{
-				Description: descriptionFeature,
-				Enabled:     enabledFeature,
-			},
-		}
-		log.Info(ctx, map[string]interface{}{"feature_name": name}, "found enabled feature for user")
-		res.Data = append(res.Data, &feature)
+func (c *FeaturesController) convertFeature(ctx context.Context, feature *unleashapi.Feature, user *authservice.User) *app.FeatureSingle {
+	return &app.FeatureSingle{
+		Data: c.convertFeatureData(ctx, feature, user),
 	}
-	return &res
+}
+
+func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *unleashapi.Feature, user *authservice.User) *app.Feature {
+	userEmail := user.Data.Attributes.Email
+	userEmailVerified := user.Data.Attributes.EmailVerified
+	internalUser := false
+	// internal users have may be able to access the feature by opting-in to the `internal` level of features.
+	if userEmailVerified != nil && *userEmailVerified && userEmail != nil && strings.HasSuffix(*userEmail, "@redhat.com") {
+		internalUser = true
+	}
+	enabledForUser := c.togglesClient.IsFeatureEnabled(*feature, user.Data.Attributes.FeatureLevel)
+	log.Debug(ctx, map[string]interface{}{"internal_user": internalUser}, "converting feature")
+	// TODO include the `email verified` field
+	return &app.Feature{
+		ID:   feature.Name,
+		Type: "features",
+		Attributes: &app.FeatureAttributes{
+			Description:     feature.Description,
+			Enabled:         feature.Enabled,
+			EnablementLevel: featuretoggles.ComputeEnablementLevel(ctx, feature, internalUser),
+			UserEnabled:     enabledForUser,
+		},
+	}
 }
