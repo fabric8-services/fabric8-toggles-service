@@ -205,7 +205,7 @@ func TestListFeatures(t *testing.T) {
 			// then
 			experimentalLevel := featuretoggles.ExperimentalLevel
 			expectedData := []*app.Feature{
-				&app.Feature{
+				{
 					ID:   "FeatureA",
 					Type: "features",
 					Attributes: &app.FeatureAttributes{
@@ -215,7 +215,7 @@ func TestListFeatures(t *testing.T) {
 						EnablementLevel: nil,
 					},
 				},
-				&app.Feature{
+				{
 					ID:   "FeatureB",
 					Type: "features",
 					Attributes: &app.FeatureAttributes{
