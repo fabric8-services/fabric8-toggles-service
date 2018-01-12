@@ -118,12 +118,12 @@ func TestShowFeature(t *testing.T) {
 
 		t.Run("did not opt-in", func(t *testing.T) {
 			// when
-			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_baz"), svc, ctrl, "featureB")
+			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_baz"), svc, ctrl, "FeatureB")
 			// then
 			require.NotNil(t, appFeature)
 			enablementLevel := featuretoggles.ExperimentalLevel
 			expectedFeatureData := &app.Feature{
-				ID:   "featureB",
+				ID:   "FeatureB",
 				Type: "features",
 				Attributes: &app.FeatureAttributes{
 					Description:     "Feature description",
@@ -156,12 +156,12 @@ func TestShowFeature(t *testing.T) {
 
 	t.Run("enabled for user", func(t *testing.T) {
 		// when
-		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_bar"), svc, ctrl, "featureB")
+		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_bar"), svc, ctrl, "FeatureB")
 		// then
 		require.NotNil(t, appFeature)
 		enablementLevel := featuretoggles.ExperimentalLevel
 		expectedFeatureData := &app.Feature{
-			ID:   "featureB",
+			ID:   "FeatureB",
 			Type: "features",
 			Attributes: &app.FeatureAttributes{
 				Description:     "Feature description",
