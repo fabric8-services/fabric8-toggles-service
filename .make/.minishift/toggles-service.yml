@@ -1,0 +1,22 @@
+name: toggles-service
+labels:
+  service: toggles-service
+containers:
+# - image: 172.30.1.1:5000/f8toggles/fabric8togglesservicedocker:latest
+- image: registry.devshift.net/fabric8-services/fabric8-toggles-service:latest
+  env:
+  - name: F8_AUTH_URL
+    value: "[[ F8_AUTH_URL]]"
+    # value:  https://auth.prod-preview.openshift.io
+  - name: F8_TOGGLES_URL
+    value: "[[ F8_TOGGLES_URL ]]"
+    # value: "http://toggles:4242/api"
+  - name: F8_KEYCLOAK_URL
+    value: "[[ F8_KEYCLOAK_URL ]]"
+    # value: "https://sso.prod-preview.openshift.io"
+services:
+- name: toggles-service
+  type: NodePort
+  ports:
+    - port: 8080
+      nodePort: 31600
