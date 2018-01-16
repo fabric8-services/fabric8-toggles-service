@@ -38,6 +38,7 @@ $(GOAGEN_BIN): $(VENDOR_DIR)
 
 ifdef DOCKER_BIN
 include ./.make/docker.mk
+include ./minishift/Makefile
 endif
 
 # If nothing was specified, run all targets as if in a fresh clone
@@ -155,3 +156,19 @@ run: build
 .PHONY: clean
 ## Runs all clean-* targets.
 clean: $(CLEAN_TARGETS)
+
+.PHONY: build-image-toggles-service
+## build toggles image
+build-image-toggles:
+	make clean deps generate
+	make build-linux
+	make docker-image-deploy-linux
+	docker tag fabric8-toggles-service-deploy $(shell minishift openshift registry)/$(f8toggles)/fabric8togglesservicedocker
+
+.PHONY: push-image-toggles-service
+## push toggles-service image to minishift docker registry
+push-image-toggles-service: build-image-toggles
+	make docker-login
+	docker push $(shell minishift openshift registry)/f8toggles/fabric8togglesservicedocker
+
+
