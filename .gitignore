@@ -87,3 +87,5 @@ auth/authservice
 bin/
 
 .DS_Store
+
+minishift/f8toggles

@@ -98,7 +98,7 @@ make test
 You're now ready to deploy the service. 2 options:
 
 `Deploy fabric8-toggles server on Minishift`::
-* For local deployment, we recommend you use link:./make/.minishift/README.adoc[minishift deployment instructions]
+* For local deployment, we recommend you use link:./minishift/README.adoc[minishift deployment instructions]
 
 `Deploy fabric8-toggles-service on your localhost`::
 
@@ -159,4 +159,10 @@ See <<deploy>> section.
 ```
 make docker-image-deploy
 docker run --name toggles-service-container -p 8080:8080 -e F8_TOGGLES_URL=http://fabric8-toggles-MINISHIFT_IP.nip.io/api fabric8-toggles-service-deploy
+```
+
+* push `toggles-service` to minishift docker registry
+
+```
+make push-image-toggles-service
 ```
