@@ -5,3 +5,4 @@ metadata:
 data:
   auth.url: https://auth.prod-preview.openshift.io
   keycloak.url: https://sso.prod-preview.openshift.io
+  toggles.url: http://f8toggles/api

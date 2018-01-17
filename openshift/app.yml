@@ -31,6 +31,11 @@ objects:
               configMapKeyRef:
                 name: f8toggles-service
                 key: keycloak.url
+          - name: F8_TOGGLES_URL
+            valueFrom:
+              configMapKeyRef:
+                name: f8toggles-service
+                key: toggles.url
           image: registry.devshift.net/fabric8-services/fabric8-toggles-service:${IMAGE_TAG}
           imagePullPolicy: Always
           livenessProbe:
