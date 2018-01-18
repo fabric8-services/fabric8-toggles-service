@@ -149,41 +149,84 @@ func TestShowFeature(t *testing.T) {
 
 	t.Run("disabled for user", func(t *testing.T) {
 
-		t.Run("did not opt-in", func(t *testing.T) {
-			// when
-			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_no_level"), svc, ctrl, singleStrategyFeature.Name)
-			// then
-			require.NotNil(t, appFeature)
-			expectedFeatureData := &app.Feature{
-				ID:   singleStrategyFeature.Name,
-				Type: "features",
-				Attributes: &app.FeatureAttributes{
-					Description:     singleStrategyFeature.Description,
-					Enabled:         true,
-					UserEnabled:     false,
-					EnablementLevel: nil, // because the feature level is internal but the user is external
-				},
-			}
-			assert.Equal(t, expectedFeatureData, appFeature.Data)
+		t.Run("user with not enough level", func(t *testing.T) {
+
+			t.Run("disabled for all", func(t *testing.T) {
+				// when
+				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_beta_level"), svc, ctrl, disabledFeature.Name)
+				// then
+				require.NotNil(t, appFeature)
+				expectedFeatureData := &app.Feature{
+					ID:   disabledFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     disabledFeature.Description,
+						Enabled:         false,
+						UserEnabled:     false,
+						EnablementLevel: nil, // feature is disabled, hence no opt-in level would work anyways
+					},
+				}
+				assert.Equal(t, expectedFeatureData, appFeature.Data)
+			})
+
+			t.Run("enabled for internal", func(t *testing.T) {
+				// when
+				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_no_level"), svc, ctrl, singleStrategyFeature.Name)
+				// then
+				require.NotNil(t, appFeature)
+				expectedFeatureData := &app.Feature{
+					ID:   singleStrategyFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     singleStrategyFeature.Description,
+						Enabled:         true,
+						UserEnabled:     false,
+						EnablementLevel: nil, // because the feature level is internal but the user is external
+					},
+				}
+				assert.Equal(t, expectedFeatureData, appFeature.Data)
+			})
 		})
 
-		t.Run("disabled for all", func(t *testing.T) {
-			// when
-			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_beta_level"), svc, ctrl, disabledFeature.Name)
-			// then
-			require.NotNil(t, appFeature)
-			expectedFeatureData := &app.Feature{
-				ID:   disabledFeature.Name,
-				Type: "features",
-				Attributes: &app.FeatureAttributes{
-					Description:     disabledFeature.Description,
-					Enabled:         false,
-					UserEnabled:     false,
-					EnablementLevel: nil, // feature is disabled, hence no opt-in level would work anyways
-				},
-			}
-			assert.Equal(t, expectedFeatureData, appFeature.Data)
+		t.Run("user with no level", func(t *testing.T) {
+
+			t.Run("disabled for all", func(t *testing.T) {
+				// when
+				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_beta_level"), svc, ctrl, disabledFeature.Name)
+				// then
+				require.NotNil(t, appFeature)
+				expectedFeatureData := &app.Feature{
+					ID:   disabledFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     disabledFeature.Description,
+						Enabled:         false,
+						UserEnabled:     false,
+						EnablementLevel: nil, // feature is disabled, hence no opt-in level would work anyways
+					},
+				}
+				assert.Equal(t, expectedFeatureData, appFeature.Data)
+			})
+
+			t.Run("enabled for internal", func(t *testing.T) {
+				// when
+				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_no_level"), svc, ctrl, singleStrategyFeature.Name)
+				// then
+				require.NotNil(t, appFeature)
+				expectedFeatureData := &app.Feature{
+					ID:   singleStrategyFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     singleStrategyFeature.Description,
+						Enabled:         true,
+						UserEnabled:     false,
+						EnablementLevel: nil, // because the feature level is internal but the user is external
+					},
+				}
+				assert.Equal(t, expectedFeatureData, appFeature.Data)
+			})
 		})
+
 	})
 
 	t.Run("enabled for user", func(t *testing.T) {
