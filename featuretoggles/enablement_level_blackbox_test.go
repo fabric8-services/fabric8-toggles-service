@@ -88,14 +88,14 @@ func TestComputeEnablementLevel(t *testing.T) {
 	betaLevel := featuretoggles.BetaLevel
 	releasedLevel := featuretoggles.ReleasedLevel
 	dataset := map[bool]map[*unleashapi.Feature]*string{
-		internalUser: map[*unleashapi.Feature]*string{
+		internalUser: {
 			disabledFeature:        nil,
 			noStrategyFeature:      nil,
 			singleStrategyFeature:  &internalLevel, // user is allowed to access this level of feature
 			multiStrategiesFeature: &betaLevel,
 			releasedFeature:        &releasedLevel,
 		},
-		externalUser: map[*unleashapi.Feature]*string{
+		externalUser: {
 			disabledFeature:        nil,
 			noStrategyFeature:      nil,
 			singleStrategyFeature:  nil, // user is *not* allowed to access this level of feature
