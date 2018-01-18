@@ -1,6 +1,7 @@
 package featuretoggles
 
 import (
+	"context"
 	"os"
 	"time"
 
@@ -85,20 +86,29 @@ func (c *Client) GetFeatures(names []string) []*unleashapi.Feature {
 	return result
 }
 
-// IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given level
-func (c *Client) IsFeatureEnabled(feature unleashapi.Feature, level *string) bool {
-	if level == nil {
-		log.Warn(nil, nil, "skipping check for toggle feature due to: user level is nil")
+// IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given user level
+func (c *Client) IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, userLevel *string) bool {
+	if userLevel == nil {
+		// accept if feature has (at least) one strategy with the `released` level
+		for _, s := range feature.Strategies {
+			if s.Parameters[LevelParameter] == ReleasedLevel {
+				log.Debug(ctx, nil, "considering feature as enabled as it is released")
+				return true
+			}
+		}
+		log.Warn(ctx, nil, "skipping check for toggle feature due to: user level is nil")
 		return false
 	}
 	if !c.clientListener.ready {
-		log.Warn(nil, nil, "unable to check if feature is enabled due to: client is not ready")
+		log.Warn(ctx, nil, "unable to check if feature is enabled due to: client is not ready")
 		return false
 	}
-	ctx := unleashcontext.Context{
-		Properties: map[string]string{
-			Level: *level,
-		},
-	}
-	return c.UnleashClient.IsEnabled(feature.Name, unleash.WithContext(ctx))
+	return c.UnleashClient.IsEnabled(
+		feature.Name,
+		unleash.WithContext(unleashcontext.Context{
+			Properties: map[string]string{
+				LevelParameter: *userLevel,
+			},
+		}),
+	)
 }

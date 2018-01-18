@@ -146,7 +146,7 @@ func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *un
 	if userEmailVerified != nil && *userEmailVerified && userEmail != nil && strings.HasSuffix(*userEmail, "@redhat.com") {
 		internalUser = true
 	}
-	enabledForUser := c.togglesClient.IsFeatureEnabled(*feature, user.Data.Attributes.FeatureLevel)
+	enabledForUser := c.togglesClient.IsFeatureEnabled(ctx, *feature, user.Data.Attributes.FeatureLevel)
 	log.Debug(ctx, map[string]interface{}{"internal_user": internalUser}, "converting feature")
 	// TODO include the `email verified` field
 	return &app.Feature{

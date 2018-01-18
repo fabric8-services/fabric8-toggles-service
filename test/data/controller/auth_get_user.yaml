@@ -5,7 +5,7 @@ interactions:
     method: GET
     url: http://auth/api/user
     headers:
-      sub: ["user_foo"] # will be compared against the `sub` claim in the incoming request's token
+      sub: ["user_beta_level"] # will be compared against the `sub` claim in the incoming request's token
   response:
     status: 200 OK
     code: 200
@@ -28,7 +28,7 @@ interactions:
     method: GET
     url: http://auth/api/user
     headers:
-      sub: ["user_bar"] # will be compared against the `sub` claim in the incoming request's token
+      sub: ["user_experimental_level"] # will be compared against the `sub` claim in the incoming request's token
   response:
     status: 200 OK
     code: 200
@@ -51,7 +51,7 @@ interactions:
     method: GET
     url: http://auth/api/user
     headers:
-      sub: ["user_baz"] # will be compared against the `sub` claim in the incoming request's token
+      sub: ["user_no_level"] # will be compared against the `sub` claim in the incoming request's token
   response:
     status: 200 OK
     code: 200

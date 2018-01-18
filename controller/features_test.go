@@ -27,60 +27,101 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type TestfeatureBontrollerConfig struct {
-	authServiceURL string
-}
+var disabledFeature, noStrategyFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature unleashapi.Feature
 
-func (c *TestfeatureBontrollerConfig) GetAuthServiceURL() string {
-	return c.authServiceURL
-}
-
-func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.FeaturesController) {
-	svc := goa.New("feature")
-	// given
-	featureA := unleashapi.Feature{
-		Name:        "FeatureA",
-		Description: "Feature description",
+func init() {
+	// features
+	disabledFeature = unleashapi.Feature{
+		Name:        "disabledFeature",
+		Description: "Disabled feature",
 		Enabled:     false,
 		Strategies:  []unleashapi.Strategy{},
 	}
 
-	featureB := unleashapi.Feature{
-		Name:        "FeatureB",
-		Description: "Feature description",
+	noStrategyFeature = unleashapi.Feature{
+		Name:        "noStrategyFeature",
+		Description: "Feature with no strategy",
+		Enabled:     true,
+		Strategies:  []unleashapi.Strategy{},
+	}
+
+	singleStrategyFeature = unleashapi.Feature{
+		Name:        "singleStrategyFeature",
+		Description: "Feature with single strategy",
 		Enabled:     true,
 		Strategies: []unleashapi.Strategy{
 			{
-				Name: featuretoggles.EnableByLevel,
+				Name: featuretoggles.EnableByLevelStrategyName,
 				Parameters: map[string]interface{}{
-					"level": featuretoggles.InternalLevel,
-				},
-			},
-			{
-				Name: featuretoggles.EnableByLevel,
-				Parameters: map[string]interface{}{
-					"level": featuretoggles.ExperimentalLevel,
+					featuretoggles.LevelParameter: featuretoggles.InternalLevel,
 				},
 			},
 		},
 	}
-	unleashClient := &unleashtestclient.MockUnleashClient{
-		Features: []unleashapi.Feature{
-			featureA,
-			featureB,
-			featureB,
+
+	multiStrategiesFeature = unleashapi.Feature{
+		Name:        "multiStrategiesFeature",
+		Description: "Feature with multiple strategies",
+		Enabled:     true,
+		Strategies: []unleashapi.Strategy{
+			{
+				Name: featuretoggles.EnableByLevelStrategyName,
+				Parameters: map[string]interface{}{
+					featuretoggles.LevelParameter: featuretoggles.InternalLevel,
+				},
+			},
+			{
+				Name: featuretoggles.EnableByLevelStrategyName,
+				Parameters: map[string]interface{}{
+					featuretoggles.LevelParameter: featuretoggles.ExperimentalLevel,
+				},
+			},
+			{
+				Name: featuretoggles.EnableByLevelStrategyName,
+				Parameters: map[string]interface{}{
+					featuretoggles.LevelParameter: featuretoggles.BetaLevel,
+				},
+			},
 		},
+	}
+
+	releasedFeature = unleashapi.Feature{
+		Name:        "releasedFeature",
+		Description: "Feature released",
+		Enabled:     true,
+		Strategies: []unleashapi.Strategy{
+			{
+				Name: featuretoggles.EnableByLevelStrategyName,
+				Parameters: map[string]interface{}{
+					featuretoggles.LevelParameter: featuretoggles.ReleasedLevel,
+				},
+			},
+		},
+	}
+}
+
+type TestFeatureControllerConfig struct {
+	authServiceURL string
+}
+
+func (c *TestFeatureControllerConfig) GetAuthServiceURL() string {
+	return c.authServiceURL
+}
+
+func NewFeaturesController(r *recorder.Recorder, features ...unleashapi.Feature) (*goa.Service, *controller.FeaturesController) {
+	svc := goa.New("feature")
+	unleashClient := &unleashtestclient.MockUnleashClient{
+		Features: features,
 		Strategies: []unleashstrategy.Strategy{
 			&featuretoggles.EnableByLevelStrategy{},
 		},
 	}
-
 	ctrl := controller.NewFeaturesController(svc,
 		featuretoggles.NewClientWithState(unleashClient, true),
 		&http.Client{
 			Transport: r.Transport,
 		},
-		&TestfeatureBontrollerConfig{
+		&TestFeatureControllerConfig{
 			authServiceURL: "http://auth",
 		},
 	)
@@ -88,29 +129,21 @@ func NewFeaturesController(r *recorder.Recorder) (*goa.Service, *controller.Feat
 }
 
 func TestShowFeature(t *testing.T) {
-	// given
-	cassetteName := "../test/data/controller/auth_get_user"
-	_, err := os.Stat(fmt.Sprintf("%s.yaml", cassetteName))
-	require.NoError(t, err)
-	r, err := recorder.New(cassetteName)
-	require.NoError(t, err)
-	_, err = PublicKey()
-	require.NoError(t, err)
 
-	// custom cassette matcher that will compare the HTTP requests' token subject with the `sub` header of the recorded data (the yaml file)
-	r.SetMatcher(JWTMatcher())
-	require.NoError(t, err)
+	// given
+	r := newRecorder(t, "../test/data/controller/auth_get_user")
 	defer r.Stop()
-	svc, ctrl := NewFeaturesController(r)
+
+	svc, ctrl := NewFeaturesController(r, disabledFeature, noStrategyFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature)
 
 	t.Run("fail", func(t *testing.T) {
 		t.Run("unauthorized", func(t *testing.T) {
 			// when/then
-			test.ShowFeaturesUnauthorized(t, createInvalidContext(), svc, ctrl, "FeatureA")
+			test.ShowFeaturesUnauthorized(t, createInvalidContext(), svc, ctrl, singleStrategyFeature.Name)
 		})
 		t.Run("not found", func(t *testing.T) {
 			// when/then
-			test.ShowFeaturesNotFound(t, createValidContext(t, "user_foo"), svc, ctrl, "FeatureZ")
+			test.ShowFeaturesNotFound(t, createValidContext(t, "user_beta_level"), svc, ctrl, "UnknownFeature")
 		})
 	})
 
@@ -118,18 +151,17 @@ func TestShowFeature(t *testing.T) {
 
 		t.Run("did not opt-in", func(t *testing.T) {
 			// when
-			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_baz"), svc, ctrl, "FeatureB")
+			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_no_level"), svc, ctrl, singleStrategyFeature.Name)
 			// then
 			require.NotNil(t, appFeature)
-			enablementLevel := featuretoggles.ExperimentalLevel
 			expectedFeatureData := &app.Feature{
-				ID:   "FeatureB",
+				ID:   singleStrategyFeature.Name,
 				Type: "features",
 				Attributes: &app.FeatureAttributes{
-					Description:     "Feature description",
+					Description:     singleStrategyFeature.Description,
 					Enabled:         true,
 					UserEnabled:     false,
-					EnablementLevel: &enablementLevel,
+					EnablementLevel: nil, // because the feature level is internal but the user is external
 				},
 			}
 			assert.Equal(t, expectedFeatureData, appFeature.Data)
@@ -137,17 +169,17 @@ func TestShowFeature(t *testing.T) {
 
 		t.Run("disabled for all", func(t *testing.T) {
 			// when
-			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, "FeatureA")
+			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_beta_level"), svc, ctrl, disabledFeature.Name)
 			// then
 			require.NotNil(t, appFeature)
 			expectedFeatureData := &app.Feature{
-				ID:   "FeatureA",
+				ID:   disabledFeature.Name,
 				Type: "features",
 				Attributes: &app.FeatureAttributes{
-					Description:     "Feature description",
+					Description:     disabledFeature.Description,
 					Enabled:         false,
 					UserEnabled:     false,
-					EnablementLevel: nil,
+					EnablementLevel: nil, // feature is disabled, hence no opt-in level would work anyways
 				},
 			}
 			assert.Equal(t, expectedFeatureData, appFeature.Data)
@@ -155,41 +187,78 @@ func TestShowFeature(t *testing.T) {
 	})
 
 	t.Run("enabled for user", func(t *testing.T) {
-		// when
-		_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_bar"), svc, ctrl, "FeatureB")
-		// then
-		require.NotNil(t, appFeature)
-		enablementLevel := featuretoggles.ExperimentalLevel
-		expectedFeatureData := &app.Feature{
-			ID:   "FeatureB",
-			Type: "features",
-			Attributes: &app.FeatureAttributes{
-				Description:     "Feature description",
-				Enabled:         true,
-				UserEnabled:     true,
-				EnablementLevel: &enablementLevel,
-			},
-		}
-		assert.Equal(t, expectedFeatureData, appFeature.Data)
 
+		t.Run("unreleased feature", func(t *testing.T) {
+
+			t.Run("user with enough level", func(t *testing.T) {
+				// when
+				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_experimental_level"), svc, ctrl, multiStrategiesFeature.Name)
+				// then
+				require.NotNil(t, appFeature)
+				enablementLevel := featuretoggles.BetaLevel
+				expectedFeatureData := &app.Feature{
+					ID:   multiStrategiesFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     multiStrategiesFeature.Description,
+						Enabled:         true,
+						UserEnabled:     true,
+						EnablementLevel: &enablementLevel,
+					},
+				}
+				assert.Equal(t, expectedFeatureData, appFeature.Data)
+			})
+		})
+
+		t.Run("released feature", func(t *testing.T) {
+
+			t.Run("user with no level", func(t *testing.T) {
+				// when
+				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_no_level"), svc, ctrl, releasedFeature.Name)
+				// then
+				require.NotNil(t, appFeature)
+				enablementLevel := featuretoggles.ReleasedLevel
+				expectedFeatureData := &app.Feature{
+					ID:   releasedFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     releasedFeature.Description,
+						Enabled:         true,
+						UserEnabled:     true,
+						EnablementLevel: &enablementLevel,
+					},
+				}
+				assert.Equal(t, expectedFeatureData, appFeature.Data)
+			})
+
+			t.Run("user with enough level", func(t *testing.T) {
+				// when
+				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_experimental_level"), svc, ctrl, releasedFeature.Name)
+				// then
+				require.NotNil(t, appFeature)
+				enablementLevel := featuretoggles.ReleasedLevel
+				expectedFeatureData := &app.Feature{
+					ID:   releasedFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     releasedFeature.Description,
+						Enabled:         true,
+						UserEnabled:     true,
+						EnablementLevel: &enablementLevel,
+					},
+				}
+				assert.Equal(t, expectedFeatureData, appFeature.Data)
+			})
+		})
 	})
 }
 
 func TestListFeatures(t *testing.T) {
-	// given
-	cassetteName := "../test/data/controller/auth_get_user"
-	_, err := os.Stat(fmt.Sprintf("%s.yaml", cassetteName))
-	require.NoError(t, err)
-	r, err := recorder.New(cassetteName)
-	require.NoError(t, err)
-	_, err = PublicKey()
-	require.NoError(t, err)
 
-	// custom cassette matcher that will compare the HTTP requests' token subject with the `sub` header of the recorded data (the yaml file)
-	r.SetMatcher(JWTMatcher())
-	require.NoError(t, err)
+	// given
+	r := newRecorder(t, "../test/data/controller/auth_get_user")
 	defer r.Stop()
-	svc, ctrl := NewFeaturesController(r)
+	svc, ctrl := NewFeaturesController(r, disabledFeature, noStrategyFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature)
 
 	t.Run("fail", func(t *testing.T) {
 		t.Run("unauthorized", func(t *testing.T) {
@@ -201,25 +270,25 @@ func TestListFeatures(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		t.Run("2 matches", func(t *testing.T) {
 			// when
-			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, []string{"FeatureA", "FeatureB"})
+			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, "user_beta_level"), svc, ctrl, []string{disabledFeature.Name, multiStrategiesFeature.Name})
 			// then
-			experimentalLevel := featuretoggles.ExperimentalLevel
+			experimentalLevel := featuretoggles.BetaLevel
 			expectedData := []*app.Feature{
 				{
-					ID:   "FeatureA",
+					ID:   disabledFeature.Name,
 					Type: "features",
 					Attributes: &app.FeatureAttributes{
-						Description:     "Feature description",
+						Description:     disabledFeature.Description,
 						Enabled:         false,
 						UserEnabled:     false,
 						EnablementLevel: nil,
 					},
 				},
 				{
-					ID:   "FeatureB",
+					ID:   multiStrategiesFeature.Name,
 					Type: "features",
 					Attributes: &app.FeatureAttributes{
-						Description:     "Feature description",
+						Description:     multiStrategiesFeature.Description,
 						Enabled:         true,
 						UserEnabled:     true,
 						EnablementLevel: &experimentalLevel,
@@ -231,7 +300,7 @@ func TestListFeatures(t *testing.T) {
 
 		t.Run("no feature found", func(t *testing.T) {
 			// when
-			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, "user_foo"), svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
+			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, "user_beta_level"), svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
 			// then
 			expectedData := []*app.Feature{}
 			assert.Equal(t, expectedData, featuresList.Data)
@@ -268,6 +337,18 @@ func createValidContext(t *testing.T, userID string) context.Context {
 	require.NoError(t, err)
 	token.Raw = signed
 	return goajwt.WithJWT(context.Background(), token)
+}
+
+func newRecorder(t *testing.T, cassetteName string) *recorder.Recorder {
+	_, err := os.Stat(fmt.Sprintf("%s.yaml", cassetteName))
+	require.NoError(t, err)
+	r, err := recorder.New(cassetteName)
+	require.NoError(t, err)
+	_, err = PublicKey()
+	require.NoError(t, err)
+	// custom cassette matcher that will compare the HTTP requests' token subject with the `sub` header of the recorded data (the yaml file)
+	r.SetMatcher(JWTMatcher())
+	return r
 }
 
 func createInvalidContext() context.Context {
