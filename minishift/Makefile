@@ -1,7 +1,8 @@
-F8_AUTH_URL := https://auth.prod-preview.openshift.io
-F8_TOGGLES_URL := "http://toggles:4242/api"
-F8_KEYCLOAK_URL := "https://sso.prod-preview.openshift.io"
+F8_AUTH_URL ?= https://auth.prod-preview.openshift.io
+F8_TOGGLES_URL ?= "http://toggles:4242/api"
+F8_KEYCLOAK_URL ?= "https://sso.prod-preview.openshift.io"
 f8toggles=f8toggles
+
 
 .PHONY: login
 ## login to oc minishift
