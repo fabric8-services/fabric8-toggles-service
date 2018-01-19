@@ -27,7 +27,7 @@ type FeaturesControllerConfig interface {
 }
 
 // NewFeaturesController creates a FeaturesController.
-func NewFeaturesController(service *goa.Service, togglesClient *featuretoggles.Client, httpClient *http.Client, config FeaturesControllerConfig) *FeaturesController {
+func NewFeaturesController(service *goa.Service, togglesClient featuretoggles.Client, httpClient *http.Client, config FeaturesControllerConfig) *FeaturesController {
 	return &FeaturesController{
 		Controller:    service.NewController("FeaturesController"),
 		togglesClient: togglesClient,
@@ -39,7 +39,7 @@ func NewFeaturesController(service *goa.Service, togglesClient *featuretoggles.C
 // FeaturesController implements the features resource.
 type FeaturesController struct {
 	*goa.Controller
-	togglesClient *featuretoggles.Client
+	togglesClient featuretoggles.Client
 	httpClient    *http.Client
 	authURL       string
 }
@@ -55,7 +55,7 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 	if err != nil {
 		return errorhandler.JSONErrorResponse(ctx, err)
 	}
-	features := c.togglesClient.GetFeatures(ctx.Names)
+	features := c.togglesClient.GetFeatures(ctx, ctx.Names)
 	appFeatures := c.convertFeatures(ctx, features, user)
 	return ctx.OK(appFeatures)
 }
@@ -146,9 +146,15 @@ func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *un
 	if userEmailVerified != nil && *userEmailVerified && userEmail != nil && strings.HasSuffix(*userEmail, "@redhat.com") {
 		internalUser = true
 	}
-	enabledForUser := c.togglesClient.IsFeatureEnabled(ctx, *feature, user.Data.Attributes.FeatureLevel)
+	var userLevel string
+	if user.Data.Attributes.FeatureLevel == nil {
+		// in case where the user profile retrieved from `auth` would not contain a `featureLevel` value, assume that the user will only access released features
+		userLevel = featuretoggles.ReleasedLevel
+	} else {
+		userLevel = *user.Data.Attributes.FeatureLevel
+	}
+	enabledForUser := c.togglesClient.IsFeatureEnabled(ctx, *feature, userLevel)
 	log.Debug(ctx, map[string]interface{}{"internal_user": internalUser}, "converting feature")
-	// TODO include the `email verified` field
 	return &app.Feature{
 		ID:   feature.Name,
 		Type: "features",
