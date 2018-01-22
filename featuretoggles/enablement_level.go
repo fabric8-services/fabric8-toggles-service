@@ -16,18 +16,21 @@ const (
 	internal
 	experimental
 	beta
+	released
 )
 
 // FeatureLevelStr custom type for feature level constants as strings
-type FeatureLevelStr string
-
 const (
+	// UnknownLevel the unknown level for feature toggles (only used if the backend config does not match any level here)
+	UnknownLevel = "unknown"
 	// InternalLevel the Internal level for feature toggles
 	InternalLevel = "internal"
 	// ExperimentalLevel the Experimental level for feature toggles
 	ExperimentalLevel = "experimental"
 	// BetaLevel the Beta level for feature toggles
 	BetaLevel = "beta"
+	// ReleasedLevel the Released level for feature toggles
+	ReleasedLevel = "released"
 )
 
 // ComputeEnablementLevel computes the enablement level required to be able to use the given feature (if it is enabled at all)
@@ -36,8 +39,8 @@ func ComputeEnablementLevel(ctx context.Context, feature *unleashapi.Feature, in
 	// iterate on feature's strategies
 	for _, s := range feature.Strategies {
 		// log.Debug(ctx, map[string]interface{}{"feature_name": feature.Name, "enablement_level": enablementLevel, "strategy_name": s.Name}, "computing enablement level")
-		if s.Name == EnableByLevel {
-			if level, found := s.Parameters["level"]; found {
+		if s.Name == EnableByLevelStrategyName {
+			if level, found := s.Parameters[LevelParameter]; found {
 				if levelStr, ok := level.(string); ok {
 					featureLevel := toFeatureLevel(levelStr, internalUser)
 					// log.Debug(ctx, map[string]interface{}{"feature_name": feature.Name, "enablement_level": enablementLevel, "strategy_group": featureLevel}, "computing enablement level")
@@ -64,6 +67,8 @@ func toFeatureLevel(level string, internalUser bool) FeatureLevel {
 		return experimental
 	case BetaLevel:
 		return beta
+	case ReleasedLevel:
+		return released
 	default:
 		return unknown
 	}
@@ -78,6 +83,8 @@ func fromFeatureLevel(level FeatureLevel) *string {
 		result = ExperimentalLevel
 	case beta:
 		result = BetaLevel
+	case released:
+		result = ReleasedLevel
 	default:
 		return nil
 	}

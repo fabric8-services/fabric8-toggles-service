@@ -28,7 +28,7 @@ import:
   version: ^1.1.0
 - package: github.com/spf13/cobra
 - package: github.com/fabric8-services/fabric8-auth
-  version: f67317193c3108895f853f80f9330c1a65b11004
+  version: 9f46f80981102c5e467aa94e007869e851ef7777
   subpackages:
   - design
   - goamiddleware
