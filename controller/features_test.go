@@ -234,22 +234,25 @@ func TestShowFeature(t *testing.T) {
 		t.Run("unreleased feature", func(t *testing.T) {
 
 			t.Run("user with enough level", func(t *testing.T) {
-				// when
-				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_experimental_level"), svc, ctrl, multiStrategiesFeature.Name)
-				// then
-				require.NotNil(t, appFeature)
-				enablementLevel := featuretoggles.BetaLevel
-				expectedFeatureData := &app.Feature{
-					ID:   multiStrategiesFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     multiStrategiesFeature.Description,
-						Enabled:         true,
-						UserEnabled:     true,
-						EnablementLevel: &enablementLevel,
-					},
-				}
-				assert.Equal(t, expectedFeatureData, appFeature.Data)
+
+				t.Run("experimental user", func(t *testing.T) {
+					// when
+					_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_experimental_level"), svc, ctrl, multiStrategiesFeature.Name)
+					// then
+					require.NotNil(t, appFeature)
+					enablementLevel := featuretoggles.BetaLevel
+					expectedFeatureData := &app.Feature{
+						ID:   multiStrategiesFeature.Name,
+						Type: "features",
+						Attributes: &app.FeatureAttributes{
+							Description:     multiStrategiesFeature.Description,
+							Enabled:         true,
+							UserEnabled:     true,
+							EnablementLevel: &enablementLevel,
+						},
+					}
+					assert.Equal(t, expectedFeatureData, appFeature.Data)
+				})
 			})
 		})
 
@@ -275,22 +278,63 @@ func TestShowFeature(t *testing.T) {
 			})
 
 			t.Run("user with enough level", func(t *testing.T) {
-				// when
-				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_experimental_level"), svc, ctrl, releasedFeature.Name)
-				// then
-				require.NotNil(t, appFeature)
-				enablementLevel := featuretoggles.ReleasedLevel
-				expectedFeatureData := &app.Feature{
-					ID:   releasedFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     releasedFeature.Description,
-						Enabled:         true,
-						UserEnabled:     true,
-						EnablementLevel: &enablementLevel,
-					},
-				}
-				assert.Equal(t, expectedFeatureData, appFeature.Data)
+
+				t.Run("experimental level", func(t *testing.T) {
+					// when
+					_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_experimental_level"), svc, ctrl, releasedFeature.Name)
+					// then
+					require.NotNil(t, appFeature)
+					enablementLevel := featuretoggles.ReleasedLevel
+					expectedFeatureData := &app.Feature{
+						ID:   releasedFeature.Name,
+						Type: "features",
+						Attributes: &app.FeatureAttributes{
+							Description:     releasedFeature.Description,
+							Enabled:         true,
+							UserEnabled:     true,
+							EnablementLevel: &enablementLevel,
+						},
+					}
+					assert.Equal(t, expectedFeatureData, appFeature.Data)
+				})
+
+				t.Run("released level", func(t *testing.T) {
+					// when
+					_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_released_level"), svc, ctrl, releasedFeature.Name)
+					// then
+					require.NotNil(t, appFeature)
+					enablementLevel := featuretoggles.ReleasedLevel
+					expectedFeatureData := &app.Feature{
+						ID:   releasedFeature.Name,
+						Type: "features",
+						Attributes: &app.FeatureAttributes{
+							Description:     releasedFeature.Description,
+							Enabled:         true,
+							UserEnabled:     true,
+							EnablementLevel: &enablementLevel,
+						},
+					}
+					assert.Equal(t, expectedFeatureData, appFeature.Data)
+				})
+
+				t.Run("nopreproduction level", func(t *testing.T) {
+					// when
+					_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_nopreproduction_level"), svc, ctrl, releasedFeature.Name)
+					// then
+					require.NotNil(t, appFeature)
+					enablementLevel := featuretoggles.ReleasedLevel
+					expectedFeatureData := &app.Feature{
+						ID:   releasedFeature.Name,
+						Type: "features",
+						Attributes: &app.FeatureAttributes{
+							Description:     releasedFeature.Description,
+							Enabled:         true,
+							UserEnabled:     true,
+							EnablementLevel: &enablementLevel,
+						},
+					}
+					assert.Equal(t, expectedFeatureData, appFeature.Data)
+				})
 			})
 		})
 	})
