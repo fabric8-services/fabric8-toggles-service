@@ -102,8 +102,8 @@ You're now ready to deploy the service. 2 options:
 
 `Deploy fabric8-toggles-service on your localhost`::
 
-* Run `F8_TOGGLES_URL=http://fabric8-toggles-f8toggles.MINISHIFT_IP.nip.io/api make run`
-* where `F8_TOGGLES_URL` points to the exposed route.
+* Run `F8_TOGGLES_URL=F8_TOGGLES_URL=http://toggles-f8toggles.192.168.64.4.xip.io/api F8_AUTH_URL=https://auth.prod-preview.openshift.io make run` 
+* where `F8_TOGGLES_URL` points to the exposed route on minishift and `F8_AUTH_URL` target prod-preview.
 
 === Configure
 `Configure unleash database`::
