@@ -24,5 +24,8 @@ func (s *EnableByLevelStrategy) Name() string {
 // IsEnabled returns `true` if the given context is compatible with the settings configured on the Unleash server
 func (s *EnableByLevelStrategy) IsEnabled(settings map[string]interface{}, ctx *unleashcontext.Context) bool {
 	log.Debug(nil, map[string]interface{}{"settings_group_id": settings[LevelParameter], "properties_group_id": ctx.Properties[LevelParameter]}, "checking if feature is enabled for user, based on his/her group...")
-	return settings[LevelParameter] == ctx.Properties[LevelParameter]
+	userLevel := ctx.Properties[LevelParameter]
+	featureLevel := ToFeatureLevel(settings[LevelParameter].(string), userLevel == InternalLevel)
+	return featureLevel.IsEnabled(userLevel)
+
 }

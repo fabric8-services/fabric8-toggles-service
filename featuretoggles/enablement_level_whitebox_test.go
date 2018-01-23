@@ -58,7 +58,7 @@ func TestFeatureLevelConversion(t *testing.T) {
 			for inputValue, expectedFeatureLevel := range internalUserDataSet {
 				t.Run(inputValue, func(t *testing.T) {
 					// when
-					result := toFeatureLevel(inputValue, true)
+					result := ToFeatureLevel(inputValue, true)
 					// then
 					assert.Equal(t, expectedFeatureLevel, result)
 				})
@@ -77,7 +77,7 @@ func TestFeatureLevelConversion(t *testing.T) {
 			for inputValue, expectedFeatureLevel := range externalUserDataSet {
 				t.Run(inputValue, func(t *testing.T) {
 					// when
-					result := toFeatureLevel(inputValue, false)
+					result := ToFeatureLevel(inputValue, false)
 					// then
 					assert.Equal(t, expectedFeatureLevel, result)
 				})
