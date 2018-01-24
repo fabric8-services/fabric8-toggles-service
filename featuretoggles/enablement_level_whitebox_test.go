@@ -7,7 +7,37 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
+func TestFeatureLevelIsEnabled(t *testing.T) {
+	t.Run("isEnabled for cumulative values", func(t *testing.T) {
+		// given
+		type FeatureLevelTest struct {
+			featureLevel FeatureLevel
+			userLevel string
+			expectedResult bool
+		}
+		testData := []FeatureLevelTest {
+			{internal, InternalLevel, true},
+			{internal,ExperimentalLevel, false},
+			{internal,BetaLevel, false},
+			{internal,ReleasedLevel, false},
+			{experimental, InternalLevel, true},
+			{experimental,ExperimentalLevel, true},
+			{experimental,BetaLevel, false},
+			{experimental,ReleasedLevel, false},
+			{beta, InternalLevel, true},
+			{beta,ExperimentalLevel, true},
+			{beta,BetaLevel, true},
+			{beta,ReleasedLevel, false},
+			{released, InternalLevel, true},
+			{released,ExperimentalLevel, true},
+			{released,BetaLevel, true},
+			{released,ReleasedLevel, true},
+		}
+		for _, test := range testData {
+			assert.Equal(t, test.expectedResult, test.featureLevel.IsEnabled(test.userLevel))
+		}
+	})
+}
 func TestFeatureLevelConversion(t *testing.T) {
 
 	t.Run("convert from feature level type", func(t *testing.T) {
