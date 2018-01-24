@@ -25,7 +25,7 @@ func (s *EnableByLevelStrategy) Name() string {
 func (s *EnableByLevelStrategy) IsEnabled(settings map[string]interface{}, ctx *unleashcontext.Context) bool {
 	log.Debug(nil, map[string]interface{}{"settings_group_id": settings[LevelParameter], "properties_group_id": ctx.Properties[LevelParameter]}, "checking if feature is enabled for user, based on his/her group...")
 	userLevel := ctx.Properties[LevelParameter]
-	featureLevel := ToFeatureLevel(settings[LevelParameter].(string), userLevel == InternalLevel)
+	featureLevel := toFeatureLevel(settings[LevelParameter].(string), userLevel == InternalLevel)
 	return featureLevel.IsEnabled(userLevel)
 
 }

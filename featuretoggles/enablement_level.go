@@ -42,7 +42,7 @@ func ComputeEnablementLevel(ctx context.Context, feature *unleashapi.Feature, in
 		if s.Name == EnableByLevelStrategyName {
 			if level, found := s.Parameters[LevelParameter]; found {
 				if levelStr, ok := level.(string); ok {
-					featureLevel := ToFeatureLevel(levelStr, internalUser)
+					featureLevel := toFeatureLevel(levelStr, internalUser)
 					// log.Debug(ctx, map[string]interface{}{"feature_name": feature.Name, "enablement_level": enablementLevel, "strategy_group": featureLevel}, "computing enablement level")
 					// beta > experimental > internal (if user is a RH internal)
 					if featureLevel > enablementLevel {
@@ -56,7 +56,7 @@ func ComputeEnablementLevel(ctx context.Context, feature *unleashapi.Feature, in
 	return fromFeatureLevel(enablementLevel)
 }
 
-func ToFeatureLevel(level string, internalUser bool) FeatureLevel {
+func toFeatureLevel(level string, internalUser bool) FeatureLevel {
 	switch strings.ToLower(level) {
 	case InternalLevel:
 		if internalUser {
@@ -93,9 +93,6 @@ func fromFeatureLevel(level FeatureLevel) *string {
 }
 
 func (featureLevel FeatureLevel) IsEnabled(userLevel string) bool {
-	userLevelInt := ToFeatureLevel(userLevel, userLevel == InternalLevel)
-	if featureLevel >= userLevelInt {
-		return true
-	}
-	return false
+	userLevelInt := toFeatureLevel(userLevel, userLevel == InternalLevel)
+	return featureLevel >= userLevelInt
 }
