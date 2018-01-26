@@ -1,6 +1,6 @@
-# ------------------------------------------------------------
-# Build image
-# ------------------------------------------------------------
+# -----------------------------------------------------------
+# Builder image: verify deps, run tests and builds the binary
+# -----------------------------------------------------------
 FROM centos:7 as builder
 LABEL author "Xavier Coulon <xcoulon@redhat.com>"
 ENV LANG=en_US.utf8
@@ -34,11 +34,9 @@ RUN go test -v $(go list ./... | grep -v /vendor/)
 # build the binary
 RUN go build -v ${LDFLAGS} -o ${BINARY}
 
-
-
-# ------------------------------------------------------------
-# Final image
-# ------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Final image: packages the binary without all the test and build tools
+# ---------------------------------------------------------------------
 FROM centos:7
 ENV LANG=en_US.utf8
 ENV INSTALL_DIR=/usr/local/fabric8-toggles-service

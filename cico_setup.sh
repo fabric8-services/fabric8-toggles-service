@@ -34,18 +34,8 @@ function install_deps() {
   echo 'CICO: Dependencies installed'
 }
 
-function prepare() {
-  # Let's test
-  make docker-start
-  make docker-format-go-code
-  make docker-deps
-  make docker-generate
-  make docker-build
-  echo 'CICO: Preparation complete'
-}
-
 function run_tests_without_coverage() {
-  make test
+  make docker-test
   echo "CICO: ran tests without coverage"
 }
 
@@ -76,5 +66,4 @@ function deploy() {
 function cico_setup() {
   load_jenkins_vars;
   install_deps;
-  prepare;
 }

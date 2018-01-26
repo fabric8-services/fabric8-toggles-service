@@ -126,10 +126,16 @@ format-go-code:
 	gofmt -l -s -w ${SOURCES}
 
 .PHONY: test
-## Runs the "clean-generated" and the "generate" target
+## Runs the test on host
 test:
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	go test $(TEST_PACKAGES)
+
+.PHONY: docker-test
+## Runs the tests using the 'builder' stage of the Docker file
+docker-test:
+	@echo "Running the tests using the 'builder' stage of the Docker file..."
+	@docker build --file Dockerfile --target builder .
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
