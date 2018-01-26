@@ -69,7 +69,8 @@ bin/
 
 # Glide package manager
 .glide
-vendor/
+vendor
+_vendor*
 
 # Generated assets
 app/

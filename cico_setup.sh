@@ -45,7 +45,7 @@ function prepare() {
 }
 
 function run_tests_without_coverage() {
-  make docker-test
+  make test
   echo "CICO: ran tests without coverage"
 }
 

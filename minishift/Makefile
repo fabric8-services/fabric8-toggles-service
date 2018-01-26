@@ -3,6 +3,19 @@ F8_TOGGLES_URL ?= "http://toggles:4242/api"
 F8_KEYCLOAK_URL ?= "https://sso.prod-preview.openshift.io"
 f8toggles=f8toggles
 
+.PHONY: build-image-toggles-service
+## build toggles image
+build-image-toggles:
+	make clean deps generate
+	make build-linux
+	make docker-image-deploy-linux
+	docker tag fabric8-toggles-service-deploy $(shell minishift openshift registry)/$(f8toggles)/fabric8togglesservicedocker
+
+.PHONY: push-image-toggles-service
+## push toggles-service image to minishift docker registry
+push-image-toggles-service: build-image-toggles
+	make docker-login
+	docker push $(shell minishift openshift registry)/f8toggles/fabric8togglesservicedocker
 
 .PHONY: login
 ## login to oc minishift

@@ -12,8 +12,9 @@ CUR_DIR=$(shell pwd)
 INSTALL_PREFIX=$(CUR_DIR)/bin
 DOCKER_BIN_NAME=docker
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
-GLIDE_BIN_NAME := glide
-GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
+DEP_BIN_NAME := dep
+DEP_BIN := $(shell command -v $(GOPATH)/bin/$(DEP_BIN_NAME) 2> /dev/null)
+
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
 
@@ -37,7 +38,7 @@ $(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
 
 ifdef DOCKER_BIN
-include ./.make/docker.mk
+#include ./.make/docker.mk
 include ./minishift/Makefile
 endif
 
@@ -72,20 +73,15 @@ help:/
 	    lastLine = $$0 \
           } \
         }' $(MAKEFILE_LIST)
+ifndef $(GOPATH)
+	$(warn GOPATH is not set.)
+endif
 
-.PHONY: format-go-code
-## Formats any go file that differs from gofmt's style
-format-go-code:
-	gofmt -l -s -w ${SOURCES}
 
-.PHONY: dev
-## Start fabric8-toggles-service in development mode.
-dev: deps
-	echo 'TODO Docker'
-
-$(VENDOR_DIR): glide.yaml
-	$(GLIDE_BIN) install
-	touch $(VENDOR_DIR)
+# Keep this "clean" target here at the bottom
+.PHONY: clean
+## Runs all clean-* targets.
+clean: $(CLEAN_TARGETS)
 
 CLEAN_TARGETS += clean-deps
 .PHONY: clean-deps
@@ -115,14 +111,19 @@ CLEAN_TARGETS += clean-object-files
 clean-object-files:
 	go clean ./...
 
+## Install dep.
+sysdeps: $(DEP_BIN)
+	go get -u github.com/golang/dep/cmd/dep
+
 .PHONY: deps
 ## Download build dependencies.
-deps: $(VENDOR_DIR)
+deps: sysdeps
+	$(DEP_BIN) ensure -v
 
-.PHONY: sysdeps
-## Install Glide.
-sysdeps:
-	go get -u github.com/Masterminds/glide
+.PHONY: format-go-code
+## Formats any go file that differs from gofmt's style
+format-go-code:
+	gofmt -l -s -w ${SOURCES}
 
 .PHONY: test
 ## Runs the "clean-generated" and the "generate" target
@@ -152,23 +153,5 @@ build: deps format-go-code generate
 run: build
 	bin/$(BINARY) --config config.yaml
 
-# Keep this "clean" target here at the bottom
-.PHONY: clean
-## Runs all clean-* targets.
-clean: $(CLEAN_TARGETS)
-
-.PHONY: build-image-toggles-service
-## build toggles image
-build-image-toggles:
-	make clean deps generate
-	make build-linux
-	make docker-image-deploy-linux
-	docker tag fabric8-toggles-service-deploy $(shell minishift openshift registry)/$(f8toggles)/fabric8togglesservicedocker
-
-.PHONY: push-image-toggles-service
-## push toggles-service image to minishift docker registry
-push-image-toggles-service: build-image-toggles
-	make docker-login
-	docker push $(shell minishift openshift registry)/f8toggles/fabric8togglesservicedocker
 
 
