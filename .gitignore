@@ -90,3 +90,5 @@ bin/
 .DS_Store
 
 minishift/f8toggles
+
+tools.timestamp

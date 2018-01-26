@@ -75,7 +75,7 @@ tools.timestamp:
 	@touch tools.timestamp
 
 vendor: tools.timestamp ## Runs dep to vendor project dependencies
-	dep ensure -v
+	$(GOPATH)/bin/dep ensure -v
 
 .PHONY: test
 test: vendor ## Runs unit tests
