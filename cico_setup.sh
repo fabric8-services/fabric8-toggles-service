@@ -23,11 +23,19 @@ function install_deps() {
   /usr/sbin/setenforce 0
 
   # Get all the deps in
-  yum -y install \
-    docker \
+  yum install -y \
+    yum-utils \
+    device-mapper-persistent-data \
+    lvm2 \
     make \
     git \
     curl
+  # docker-ce is required for multistage builds. 
+  # See https://docs.docker.com/engine/installation/linux/docker-ce/centos/#install-using-the-repository
+  yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+  yum install docker-ce
 
   service docker start
 
