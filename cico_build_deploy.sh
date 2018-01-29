@@ -50,18 +50,18 @@ function setup_golang() {
 ###################################################################################
 function setup_workspace() {
   mkdir -p $GOPATH/src/github.com/fabric8-services
-  cp -r $HOME/payload $GOPATH/src/github.com/fabric8-services/fabric8-jenkins-proxy
+  cp -r $HOME/payload $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
 }
 
 setup_build_environment
 setup_golang
 setup_workspace
 
-cd $GOPATH/src/github.com/fabric8-services/fabric8-jenkins-proxy
+cd $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
 echo "HEAD of repository `git rev-parse --short HEAD`"
 make all
 
-if [[ "$JOB_NAME" = "devtools-fabric8-jenkins-proxy-build-master" ]]; then
+if [[ "$JOB_NAME" = "devtools-fabric8-toggles-service-build-master" ]]; then
     TAG=$(echo ${GIT_COMMIT} | cut -c1-${DEVSHIFT_TAG_LEN})
     make push REGISTRY_USER=${DEVSHIFT_USERNAME} REGISTRY_PASSWORD=${DEVSHIFT_PASSWORD} IMAGE_TAG=${TAG}
 fi

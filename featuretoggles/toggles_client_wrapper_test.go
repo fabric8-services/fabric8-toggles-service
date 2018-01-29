@@ -6,6 +6,6 @@ func TestGetFeature(t *testing.T) {
 	// given
 
 	t.Run("ok", func(t *testing.T) {
-		
+
 	})
 }

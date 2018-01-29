@@ -64,6 +64,7 @@
 [[projects]]
   name = "github.com/fabric8-services/fabric8-auth"
   packages = [
+    "design",
     "errors",
     "goamiddleware",
     "goasupport",
@@ -90,12 +91,23 @@
     "design/apidsl",
     "dslengine",
     "encoding/form",
+    "goagen",
+    "goagen/codegen",
+    "goagen/gen_app",
+    "goagen/gen_client",
+    "goagen/gen_controller",
+    "goagen/gen_main",
+    "goagen/gen_schema",
+    "goagen/gen_swagger",
+    "goagen/meta",
+    "goagen/utils",
     "goatest",
     "logging/logrus",
     "middleware",
     "middleware/gzip",
     "middleware/security/jwt",
-    "uuid"
+    "uuid",
+    "version"
   ]
   revision = "5646a430cdeb66983d5ace3384e0a667c185abc7"
   version = "v1.3.0"
@@ -126,6 +138,12 @@
     "json/token"
   ]
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
+
+[[projects]]
+  name = "github.com/inconshreveable/mousetrap"
+  packages = ["."]
+  revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+  version = "v1.0"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -194,6 +212,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/spf13/cobra"
+  packages = ["."]
+  revision = "7b2c5ac9fc04fc5efafb60700713d4fa609b777b"
+  version = "v0.0.1"
+
+[[projects]]
   name = "github.com/spf13/jwalterweatherman"
   packages = ["."]
   revision = "12bd96e66386c1960ab0f74ced1362f66f552f7b"
@@ -259,6 +283,12 @@
   revision = "88f656faf3f37f690df1a32515b479415e1a6769"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/tools"
+  packages = ["go/ast/astutil"]
+  revision = "25101aadb97aa42907eee6a238d6d26a6cb3c756"
+
+[[projects]]
   name = "gopkg.in/square/go-jose.v2"
   packages = [
     ".",
@@ -276,6 +306,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2343a6999174f589a8a6e96e3fe756953b20b5b4db87474bbbf9aaa2961647e2"
+  inputs-digest = "4b016b59167b1bf0371b207f9b1ed9f439214ff81c462e15c0a4e72b4972c971"
   solver-name = "gps-cdcl"
   solver-version = 1
