@@ -9,7 +9,7 @@ SOURCES := $(shell find $(SOURCE_DIR) -type d \( -name vendor -o -name .glide \)
 VENDOR_DIR=vendor
 LDFLAGS := -w
 DESIGN_DIR=design
-DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/$(VENDOR_DIR) -prune -o -name '*.go' -print)
 GOAGEN_BIN=$(VENDOR_DIR)/github.com/goadesign/goa/goagen/goagen
 CUR_DIR=$(shell pwd)
 BUILD_DIR = bin
@@ -51,11 +51,11 @@ $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
 
 .PHONY: build
-build: vendor generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
+build: deps generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
 	go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(REGISTRY_IMAGE)
 
 .PHONY: build-linux
-build-linux: vendor generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
+build-linux: deps generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(REGISTRY_IMAGE)
 
 image: clean-artifacts build-linux ## Builds the container image using the binary compiled for Linux
@@ -78,11 +78,11 @@ tools.timestamp:
 	go get -u github.com/golang/lint/golint
 	@touch tools.timestamp
 
-vendor: tools.timestamp ## Runs dep to vendor project dependencies
+deps: tools.timestamp ## Runs dep to vendor project dependencies
 	$(GOPATH)/bin/dep ensure -v
 
 .PHONY: test
-test: vendor ## Runs unit tests
+test: deps ## Runs unit tests
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	go test -v $(TEST_PACKAGES)
 
@@ -131,9 +131,9 @@ run: build ## Run fabric8-toggles-service.
 # For the global "clean" target all targets in this variable will be executed
 CLEAN_TARGETS =
 
-CLEAN_TARGETS += clean-vendor
-.PHONY: clean-vendor
-clean-vendor: ## clean build dependencies.
+CLEAN_TARGETS += clean-deps
+.PHONY: clean-deps
+clean-deps: ## clean build dependencies.
 	rm -rf $(VENDOR_DIR)
 	rm -f tools.timestamp
 
