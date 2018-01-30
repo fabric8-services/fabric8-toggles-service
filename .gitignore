@@ -66,6 +66,7 @@ _testmain.go
 
 # Fabric8 binaries
 bin/
+out/
 
 # Glide package manager
 .glide

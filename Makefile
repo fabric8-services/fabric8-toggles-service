@@ -58,8 +58,10 @@ build: vendor generate $(BUILD_DIR) # Builds the Linux binary for the container 
 build-linux: vendor generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(REGISTRY_IMAGE)
 
-image: clean-artifacts $(BUILD_DIR)/$(REGISTRY_IMAGE) ## Builds the container image using the binary compiled for Linux
-	docker build -t $(REGISTRY_URL) -f Dockerfile .
+image: clean-artifacts build-linux ## Builds the container image using the binary compiled for Linux
+	docker build -t $(REGISTRY_URL) \
+	  --build-arg BINARY=$(BUILD_DIR)/$(REGISTRY_IMAGE) \
+	  -f Dockerfile .
 
 push: image ## Pushes the container image to the registry
 	$(call check_defined, REGISTRY_USER, "You need to pass the registry user via REGISTRY_USER.")

@@ -2,4 +2,3 @@ _vendor*
 vendor
 .glide
 .git
-bin
