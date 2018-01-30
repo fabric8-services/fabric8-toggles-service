@@ -8,13 +8,11 @@ SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -type d \( -name vendor -o -name .glide \) -prune -o -name '*.go' -print)
 VENDOR_DIR=vendor
 LDFLAGS := -w
-BINARY := ${PROJECT_NAME}
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 GOAGEN_BIN=$(VENDOR_DIR)/github.com/goadesign/goa/goagen/goagen
 CUR_DIR=$(shell pwd)
-INSTALL_PREFIX=$(CUR_DIR)/bin
-BUILD_DIR = out
+BUILD_DIR = bin
 
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
@@ -52,10 +50,15 @@ all: tools generate fmtcheck test image ## Compiles binary and runs format and s
 $(BUILD_DIR): 
 	mkdir $(BUILD_DIR)
 
-$(BUILD_DIR)/$(REGISTRY_IMAGE): vendor $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
+.PHONY: build
+build: vendor generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
+	go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(REGISTRY_IMAGE)
+
+.PHONY: build-linux
+build-linux: vendor generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(REGISTRY_IMAGE)
 
-image: $(BUILD_DIR)/$(REGISTRY_IMAGE) ## Builds the container image using the binary compiled for Linux
+image: clean-artifacts $(BUILD_DIR)/$(REGISTRY_IMAGE) ## Builds the container image using the binary compiled for Linux
 	docker build -t $(REGISTRY_URL) -f Dockerfile .
 
 push: image ## Pushes the container image to the registry
@@ -121,14 +124,10 @@ generate: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR) ## Generate GOA sources. Only n
 
 .PHONY: run
 run: build ## Run fabric8-toggles-service.
-	bin/$(BINARY) --config config.yaml
+	$(BUILD_DIR)/$(REGISTRY_IMAGE) --config config.yaml
 
 # For the global "clean" target all targets in this variable will be executed
 CLEAN_TARGETS =
-
-# Keep this "clean" target here at the bottom
-.PHONY: clean
-clean: $(CLEAN_TARGETS) ## Runs all clean-* targets.
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
@@ -147,13 +146,17 @@ clean-generated: ## Removes all generated code.
 
 CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts 
-clean-artifacts: ## Removes the ./bin directory.
-	-rm -rf $(INSTALL_PREFIX)
+clean-artifacts: ## Removes the ./out directory.
+	-rm -rf $(BUILD_DIR)
 
 CLEAN_TARGETS += clean-object-files
 .PHONY: clean-object-files 
 clean-object-files: ## Runs go clean to remove any executables or other object files.
 	go clean ./...
+
+# Keep this "clean" target here at the bottom (and don't scream)
+.PHONY: clean
+clean: $(CLEAN_TARGETS) ## Runs all clean-* targets.
 
 .PHONY: help
 help: ## Prints this help
