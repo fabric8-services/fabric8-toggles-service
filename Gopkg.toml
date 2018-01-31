@@ -66,9 +66,12 @@ ignored = ["github.com/fabric8-services/fabric8-toggles-service/app",
   version = "1.2.0"
 
 [[constraint]]
+  name = "github.com/dnaeon/go-vcr"
+  revision= "9d71b8a6df86e00127f96bc8dabc09856ab8afdb"
+
+[[constraint]]
   name = "github.com/fabric8-services/fabric8-auth"
   revision = "9f46f80981102c5e467aa94e007869e851ef7777"
-
 
 [prune]
   go-tests = true

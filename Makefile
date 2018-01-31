@@ -45,7 +45,7 @@ __check_defined = \
     $(if $(value $1),, \
       $(error Undefined $1$(if $2, ($2))))
 
-all: tools generate fmtcheck test image ## Compiles binary and runs format and style checks
+all: tools.timestamp generate fmtcheck test image ## Compiles binary and runs format and style checks
 
 $(BUILD_DIR): 
 	mkdir $(BUILD_DIR)
@@ -71,15 +71,16 @@ push: image ## Pushes the container image to the registry
 	docker tag $(REGISTRY_URL):latest $(REGISTRY_URL):$(IMAGE_TAG)
 	docker push $(REGISTRY_URL):$(IMAGE_TAG)
 
-tools: tools.timestamp
-
 tools.timestamp:
 	go get -u github.com/golang/dep/cmd/dep
 	go get -u github.com/golang/lint/golint
 	@touch tools.timestamp
 
-deps: tools.timestamp ## Runs dep to vendor project dependencies
-	$(GOPATH)/bin/dep ensure -v
+deps: tools.timestamp $(VENDOR_DIR) ## Runs dep to vendor project dependencies
+
+$(VENDOR_DIR):
+	$(GOPATH)/bin/dep ensure -v 
+
 
 .PHONY: test
 test: deps ## Runs unit tests
@@ -114,11 +115,11 @@ lint: ## Runs golint
 		exit 1; \
 	fi
 
-$(GOAGEN_BIN): $(VENDOR_DIR)
+$(GOAGEN_BIN): deps
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
 
 .PHONY: generate
-generate: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR) ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
+generate: $(DESIGNS) $(GOAGEN_BIN) deps ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
 	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) controller -d ${PACKAGE_NAME}/${DESIGN_DIR} -o controller/ --pkg controller --app-pkg app
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
@@ -133,7 +134,7 @@ CLEAN_TARGETS =
 
 CLEAN_TARGETS += clean-deps
 .PHONY: clean-deps
-clean-deps: ## clean build dependencies.
+clean-deps: ## clean vendor dependencies.
 	rm -rf $(VENDOR_DIR)
 	rm -f tools.timestamp
 
