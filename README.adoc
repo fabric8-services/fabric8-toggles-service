@@ -52,9 +52,6 @@ Have the following installed on your machine:
 
 `go` Install link:https://golang.org/dl/[GoLang from 1.8+], set the environment variable `GOPATH`.
 
-`glide` You can either install it yourself from link:https://github.com/Masterminds/glide#install[glide install guide]
-or run `make` which will install glide if not already installed.
-
 ==== Get the code
 
 ```sh
@@ -69,28 +66,14 @@ type:
 [source,shell]
 ----
 $ cd $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
-$ make clean run
+$ make clean build
 ----
-
-[TIP]
-====
- The clean build target DOES not remove glide.lock to ease GOA code generated imports.
- If you want to update the glide dependencies:
- 1. rm -rf glide.lock
- 2. modify glide.yaml
- 3. comment all import of github.com/fabric8-services/fabric8-toggles-service/app
- as this is a GOA generated package
- 4. make deps which does a glide install
- 5. make generate
- 6. uncomment section from 3.
- 7. make build
-====
 
 ==== Run test
 
 To run unit tests:
 ```
-make test
+make build test
 ```
 
 :deploy:
@@ -102,7 +85,7 @@ You're now ready to deploy the service. 2 options:
 
 `Deploy fabric8-toggles-service on your localhost`::
 
-* Run `F8_TOGGLES_URL=F8_TOGGLES_URL=http://toggles-f8toggles.192.168.64.4.xip.io/api F8_AUTH_URL=https://auth.prod-preview.openshift.io make run` 
+* Run `F8_TOGGLES_URL=http://toggles-f8toggles.192.168.64.4.xip.io/api F8_AUTH_URL=https://auth.prod-preview.openshift.io make run`
 * where `F8_TOGGLES_URL` points to the exposed route on minishift and `F8_AUTH_URL` target prod-preview.
 
 === Configure
@@ -130,39 +113,11 @@ To get this token, login to link:https://prod-preview.openshift.io[OSiO prod-pre
 * build image from centos
 
 ```
-make docker-image-builder
+make image
 ```
 
-* start docker detached container
-
+* run your docker image in minishift
 ```
-make docker-start
-```
-> NOTE: For `macOS` user, first `export USER=root`
-
-* build service
-
-You can now run any target withing the contain using
-
-```
-make docker-clean
-make docker-deps
-make docker-generate
-make docker-build
+make deploy-minishift
 ```
 
-* run service within container
-`fabric8-toggles-service` is a client of fabric8-toggles as a pre-requisites, you should have the server running.
-See <<deploy>> section.
-
-
-```
-make docker-image-deploy
-docker run --name toggles-service-container -p 8080:8080 -e F8_TOGGLES_URL=http://fabric8-toggles-MINISHIFT_IP.nip.io/api fabric8-toggles-service-deploy
-```
-
-* push `toggles-service` to minishift docker registry
-
-```
-make push-image-toggles-service
-```

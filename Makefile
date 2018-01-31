@@ -1,174 +1,212 @@
-PACKAGE_NAME := github.com/fabric8-services/fabric8-toggles-service
-PROJECT_NAME=fabric8-toggles-service
+PROJECT_NAME = fabric8-toggles-service
+REGISTRY_URI = push.registry.devshift.net
+REGISTRY_NS = fabric8-services
+REGISTRY_IMAGE = ${PROJECT_NAME}
+REGISTRY_URL = ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}
+PACKAGE_NAME := github.com/fabric8-services/${PROJECT_NAME}
 SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -type d \( -name vendor -o -name .glide \) -prune -o -name '*.go' -print)
 VENDOR_DIR=vendor
 LDFLAGS := -w
-BINARY := fabric8-toggles-service
 DESIGN_DIR=design
-DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/$(VENDOR_DIR) -prune -o -name '*.go' -print)
 GOAGEN_BIN=$(VENDOR_DIR)/github.com/goadesign/goa/goagen/goagen
 CUR_DIR=$(shell pwd)
-INSTALL_PREFIX=$(CUR_DIR)/bin
-DOCKER_BIN_NAME=docker
-DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
-GLIDE_BIN_NAME := glide
-GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
+BUILD_DIR = bin
+F8_AUTH_URL ?= https://auth.prod-preview.openshift.io
+F8_TOGGLES_URL ?= "http://toggles:4242/api"
+F8_KEYCLOAK_URL ?= "https://sso.prod-preview.openshift.io"
+f8toggles=f8toggles
+
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
 
 
-COMMIT=$(shell git rev-parse HEAD)
+IMAGE_TAG ?= $(shell git rev-parse HEAD)
 GITUNTRACKEDCHANGES := $(shell git status --porcelain --untracked-files=no)
 ifneq ($(GITUNTRACKEDCHANGES),)
-COMMIT := $(COMMIT)-dirty
+IMAGE_TAG := $(IMAGE_TAG)-dirty
 endif
 BUILD_TIME=`date -u '+%Y-%m-%dT%H:%M:%SZ'`
-
-PACKAGE_NAME := github.com/fabric8-services/fabric8-toggles-service
-
-# For the global "clean" target all targets in this variable will be executed
-CLEAN_TARGETS =
-
 # Pass in build time variables to main
-LDFLAGS=-ldflags "-X ${PACKAGE_NAME}/controller.Commit=${COMMIT} -X ${PACKAGE_NAME}/controller.BuildTime=${BUILD_TIME}"
+LDFLAGS=-ldflags "-X ${PACKAGE_NAME}/controller.Commit=${IMAGE_TAG} -X ${PACKAGE_NAME}/controller.BuildTime=${BUILD_TIME}"
 
-$(GOAGEN_BIN): $(VENDOR_DIR)
-	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
+.DEFAULT_GOAL := help
 
-ifdef DOCKER_BIN
-include ./.make/docker.mk
-include ./minishift/Makefile
-endif
+GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -vEf .goanalysisignore)
+GOANALYSIS_PKGS=$(shell go list -f {{.ImportPath}} ./... | grep -vEf .goanalysisignore)
+GOANALYSIS_FILES=$(shell find  . -name '*.go' | grep -vEf .goanalysisignore)
+# Check that given variables are set and all have non-empty values,
+# die with an error otherwise.
+#
+# Params:
+#   1. Variable name(s) to test.
+#   2. (optional) Error message to print.
+check_defined = \
+    $(strip $(foreach 1,$1, \
+        $(call __check_defined,$1,$(strip $(value 2)))))
+__check_defined = \
+    $(if $(value $1),, \
+      $(error Undefined $1$(if $2, ($2))))
 
-# If nothing was specified, run all targets as if in a fresh clone
-.PHONY: all
-## Default target - fetch dependencies, generate code and build.
-all: sysdeps deps generate build
+all: tools.timestamp generate fmtcheck test image ## Compiles binary and runs format and style checks
 
-.PHONY: help
-# Based on https://gist.github.com/rcmachado/af3db315e31383502660
-## Display this help text.
-help:/
-	$(info Available targets)
-	$(info -----------------)
-	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
-		helpMessage = match(lastLine, /^## (.*)/); \
-		helpCommand = substr($$1, 0, index($$1, ":")-1); \
-		if (helpMessage) { \
-			helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
-			gsub(/##/, "\n                                     ", helpMessage); \
-		} else { \
-			helpMessage = "(No documentation)"; \
-		} \
-		printf "%-35s - %s\n", helpCommand, helpMessage; \
-		lastLine = "" \
-	} \
-	{ hasComment = match(lastLine, /^## (.*)/); \
-          if(hasComment) { \
-            lastLine=lastLine$$0; \
-	  } \
-          else { \
-	    lastLine = $$0 \
-          } \
-        }' $(MAKEFILE_LIST)
+$(BUILD_DIR): 
+	mkdir $(BUILD_DIR)
 
-.PHONY: format-go-code
-## Formats any go file that differs from gofmt's style
-format-go-code:
-	gofmt -l -s -w ${SOURCES}
+.PHONY: build
+build: deps generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
+	go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(REGISTRY_IMAGE)
 
-.PHONY: dev
-## Start fabric8-toggles-service in development mode.
-dev: deps
-	echo 'TODO Docker'
+.PHONY: build-linux
+build-linux: deps generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(REGISTRY_IMAGE)
 
-$(VENDOR_DIR): glide.yaml
-	$(GLIDE_BIN) install
-	touch $(VENDOR_DIR)
+image: clean-artifacts build-linux ## Builds the container image using the binary compiled for Linux
+	docker build -t $(REGISTRY_URL) \
+	  --build-arg BINARY=$(BUILD_DIR)/$(REGISTRY_IMAGE) \
+	  -f Dockerfile .
 
-CLEAN_TARGETS += clean-deps
-.PHONY: clean-deps
-## clean build dependencies.
-clean-deps:
-	rm -rf $(VENDOR_DIR)
+push-openshift: image ## Pushes the container image to the OpenShift online registry
+	$(call check_defined, REGISTRY_USER, "You need to pass the registry user via REGISTRY_USER.")
+	$(call check_defined, REGISTRY_PASSWORD, "You need to pass the registry password via REGISTRY_PASSWORD.")
+	docker login -u $(REGISTRY_USER) -p $(REGISTRY_PASSWORD) $(REGISTRY_URI)
+	docker push $(REGISTRY_URL):latest
+	docker tag $(REGISTRY_URL):latest $(REGISTRY_URL):$(IMAGE_TAG)
+	docker push $(REGISTRY_URL):$(IMAGE_TAG)
 
-CLEAN_TARGETS += clean-generated
-.PHONY: clean-generated
-## Removes all generated code.
-clean-generated:
-	-rm -rf ./app
-	-rm -rf ./client/
-	-rm -rf ./swagger/
-	-rm -rf ./tool/cli/
-	-rm -rf ./feature/feature
-	-rm -rf ./auth
-CLEAN_TARGETS += clean-artifacts
-.PHONY: clean-artifacts
-## Removes the ./bin directory.
-clean-artifacts:
-	-rm -rf $(INSTALL_PREFIX)
+tools.timestamp:
+	go get -u github.com/golang/dep/cmd/dep
+	go get -u github.com/golang/lint/golint
+	@touch tools.timestamp
 
-CLEAN_TARGETS += clean-object-files
-.PHONY: clean-object-files
-## Runs go clean to remove any executables or other object files.
-clean-object-files:
-	go clean ./...
+deps: tools.timestamp $(VENDOR_DIR) ## Runs dep to vendor project dependencies
 
-.PHONY: deps
-## Download build dependencies.
-deps: $(VENDOR_DIR)
+$(VENDOR_DIR):
+	$(GOPATH)/bin/dep ensure -v 
 
-.PHONY: sysdeps
-## Install Glide.
-sysdeps:
-	go get -u github.com/Masterminds/glide
 
 .PHONY: test
-## Runs the "clean-generated" and the "generate" target
-test:
+test: deps ## Runs unit tests
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	go test $(TEST_PACKAGES)
+	go test -v $(TEST_PACKAGES)
+
+
+.PHONY: fmtcheck
+fmtcheck: ## Runs gofmt and returns error in case of violations
+	@rm -f /tmp/gofmt-errors
+	@gofmt -s -l ${GOANALYSIS_FILES} 2>&1 \
+		| tee /tmp/gofmt-errors \
+		| read \
+	&& echo "ERROR: These files differ from gofmt's style (run 'make fmt' to fix this):" \
+	&& cat /tmp/gofmt-errors \
+	&& exit 1 \
+	|| true
+
+.PHONY: fmt
+fmt: ## Runs gofmt and formats code violations
+	@gofmt -s -w -l ${GOANALYSIS_FILES} 2>&1
+
+.PHONY: vet
+vet: ## Runs 'go vet' for common coding mistakes
+	@go vet $(GOANALYSIS_PKGS)
+
+.PHONY: lint
+lint: ## Runs golint
+	@out="$$(golint $(GOANALYSIS_PKGS))"; \
+	if [ -n "$$out" ]; then \
+		echo "$$out"; \
+		exit 1; \
+	fi
+
+$(GOAGEN_BIN): deps
+	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
 
 .PHONY: generate
-## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
+generate: $(DESIGNS) $(GOAGEN_BIN) deps ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
 	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) controller -d ${PACKAGE_NAME}/${DESIGN_DIR} -o controller/ --pkg controller --app-pkg app
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg authservice -o auth
 
-.PHONY: regenerate
-## Runs the "clean-generated" and the "generate" target
-regenerate: clean-generated generate
-
-.PHONY: build
-## Build fabric8-toggles-service.
-build: deps format-go-code generate
-	go build -v $(LDFLAGS) -o bin/$(BINARY)
-
 .PHONY: run
-## Run fabric8-toggles-service.
-run: build
-	bin/$(BINARY) --config config.yaml
+run: build ## Run fabric8-toggles-service.
+	$(BUILD_DIR)/$(REGISTRY_IMAGE) --config config.yaml
 
-# Keep this "clean" target here at the bottom
+.PHONY: minishift-login
+## login to oc minishift
+minishift-login:
+	@echo "Login to minishift..."
+	@oc login --insecure-skip-tls-verify=true -u developer -p developer
+
+.PHONY: minishift-registry-login
+## login to the registry in Minishift (to push images)
+minishift-registry-login:
+	@echo "Login to minishift registry..."
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry)
+
+$(f8toggles):
+	oc new-project f8toggles
+	touch $@
+
+.PHONY: push-minishift
+push-minishift: minishift-login minishift-registry-login image $(f8toggles)
+	docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${f8toggles}/${REGISTRY_IMAGE}:latest
+	docker push $(shell minishift openshift registry)/${f8toggles}/${REGISTRY_IMAGE}:latest
+
+.PHONY: deploy-minishift
+deploy-minishift: push-minishift ## deploy toggles server on minishift
+	kedge apply -f ./minishift/toggles-db.yml
+	kedge apply -f ./minishift/toggles.yml
+	oc expose svc toggles
+	F8_AUTH_URL=$(F8_AUTH_URL) F8_KEYCLOAK_URL=$(F8_KEYCLOAK_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f ./minishift/toggles-service.yml
+	oc expose svc toggles-service
+
+.PHONY: clean-minishift
+clean-minishift: minishift-login ## removes the f8toggles project on Minishift
+	oc project f8toggles && oc delete project f8toggles && rm -rf $(f8toggles)
+
+
+# For the global "clean" target all targets in this variable will be executed
+CLEAN_TARGETS =
+
+CLEAN_TARGETS += clean-deps
+.PHONY: clean-deps
+clean-deps: ## clean vendor dependencies.
+	rm -rf $(VENDOR_DIR)
+	rm -f tools.timestamp
+
+CLEAN_TARGETS += clean-generated
+.PHONY: clean-generated 
+clean-generated: ## Removes all generated code.
+	-rm -rf ./app
+	-rm -rf ./client/
+	-rm -rf ./swagger/
+	-rm -rf ./tool/cli/
+	-rm -rf ./auth
+
+CLEAN_TARGETS += clean-artifacts
+.PHONY: clean-artifacts 
+clean-artifacts: ## Removes the ./out directory.
+	-rm -rf $(BUILD_DIR)
+
+CLEAN_TARGETS += clean-object-files
+.PHONY: clean-object-files 
+clean-object-files: ## Runs go clean to remove any executables or other object files.
+	go clean ./...
+
+# Keep this "clean" target here at the bottom (and don't scream)
 .PHONY: clean
-## Runs all clean-* targets.
-clean: $(CLEAN_TARGETS)
+clean: $(CLEAN_TARGETS) ## Runs all clean-* targets.
 
-.PHONY: build-image-toggles-service
-## build toggles image
-build-image-toggles:
-	make clean deps generate
-	make build-linux
-	make docker-image-deploy-linux
-	docker tag fabric8-toggles-service-deploy $(shell minishift openshift registry)/$(f8toggles)/fabric8togglesservicedocker
+.PHONY: help
+help: ## Prints this help
+	@grep -E '^[^.]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-40s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: push-image-toggles-service
-## push toggles-service image to minishift docker registry
-push-image-toggles-service: build-image-toggles
-	make docker-login
-	docker push $(shell minishift openshift registry)/f8toggles/fabric8togglesservicedocker
+
+
+
+
+
 
 

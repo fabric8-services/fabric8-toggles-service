@@ -66,10 +66,12 @@ _testmain.go
 
 # Fabric8 binaries
 bin/
+out/
 
 # Glide package manager
 .glide
-vendor/
+vendor
+_vendor*
 
 # Generated assets
 app/
@@ -89,3 +91,6 @@ bin/
 .DS_Store
 
 minishift/f8toggles
+
+tools.timestamp
+f8toggles

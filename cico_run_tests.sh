@@ -1,7 +1,4 @@
 #!/bin/bash
 
-. cico_setup.sh
-
-cico_setup;
-
-run_tests_without_coverage;
+# until the job configuration is updated...
+. cico_build_deploy.sh
