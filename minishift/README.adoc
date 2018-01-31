@@ -23,7 +23,6 @@ oc login -u developer -p developer
 TL;DR: To deploy both `toggles` server and `toggle-services` client run:
 
 ```
-cd minishift/
 minishift start --memory=7000 --cpus=4 --disk-size=50g
 make login
 make deploy-toggles
@@ -58,24 +57,7 @@ svc/f8toggle-db   172.30.5.173   <none>        5432/TCP   8s
 po/f8toggle-db-1-0rtkj   1/1       Running   0          14s
 ```
 
-==== (optional) Build the docker image for the JS server
-
-> Note: By default this step is skipped, you build from source
-by changing `image: registry.devshift.net/fabric8-services/fabric8-toggles:latest`
-to `image: 172.30.1.1:5000/f8toggles/fabric8togglesdocker:latest`
-and follow the build steps below:
-
-Using the https://medium.com/@xcoulon/tips-for-minikube-minishift-users-including-myself-accessing-the-clusters-docker-deamon-c15032a60b08[the cluster’s Docker deamon],
-we're going to build the docker image and make it available directly inside the minishift local registry.
-Go to the ../../Dockerfile[Dockerfile] folder and type:
-```
-cd path_to_where_you_clone_https://github.com/fabric8-services/fabric8-toggles
-eval $(minishift docker-env)
-docker login -u developer -p $(oc whoami -t) $(minishift openshift registry)
-docker build -t fabric8togglesdocker:latest .
-docker tag fabric8togglesdocker $(minishift openshift registry)/f8toggles/fabric8togglesdocker
-docker push $(minishift openshift registry)/f8toggles/fabric8togglesdocker
-```
+> Note: By default we build from CentOS CI image. You can change that in `toggles.yml`.
 
 ==== Deploy the nodejs server
 
@@ -131,32 +113,9 @@ oc logs -f fabric8-toggles-1-vvtm2
 ```
 where fabric8-toggles-1-vvtm2 is your ephemeral pod id.
 
-==== (optional) Build the docker image for the fabric8-toggles-service the client
-
-> Note: By default this step is skipped, you build from source
-by changing `- image: registry.devshift.net/fabric8-services/fabric8-toggles-service:latest`
-to `- image: 172.30.1.1:5000/f8toggles/fabric8togglesservicedocker:latest`
-and follow the build steps below:
-
-Using the https://medium.com/@xcoulon/tips-for-minikube-minishift-users-including-myself-accessing-the-clusters-docker-deamon-c15032a60b08[the cluster’s Docker deamon],
-we're going to build the docker image and make it available directly inside the minishift local registry.
-Go to the path where you clone https://github.com/fabric8-services/fabric8-toggles-service and type:
-
-```
-# build locally on your host targetting linux env for final go binary
-make clean deps generate
-make build-linux
-# use Docker daemon from minishift
-eval $(minishift docker-env)
-# build deployment image using linux binary
-make docker-image-deploy-linux
-# push to minishift docker hub
-docker tag fabric8-toggles-service-deploy $(minishift openshift registry)/f8toggles/fabric8togglesservicedocker
-docker login -u developer -p $(oc whoami -t) $(minishift openshift registry)
-docker push $(minishift openshift registry)/f8toggles/fabric8togglesservicedocker
-```
-We will use `fabric8togglesservicedocker:latest` in our deployment script.
-Let's deploy...
+> Note: By default we build from your source.
+By changing `toggles-service.yml` the line: `image: push.registry.devshift.net/fabric8-services/fabric8-toggles-service:latest`
+to `image: registry.devshift.net/fabric8-services/fabric8-toggles-service:latest` you can point to CentOS CI.
 
 ==== Deploy the fabric8-toggles-service, the client service
 

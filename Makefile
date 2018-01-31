@@ -13,6 +13,10 @@ DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/$(VENDOR
 GOAGEN_BIN=$(VENDOR_DIR)/github.com/goadesign/goa/goagen/goagen
 CUR_DIR=$(shell pwd)
 BUILD_DIR = bin
+F8_AUTH_URL ?= https://auth.prod-preview.openshift.io
+F8_TOGGLES_URL ?= "http://toggles:4242/api"
+F8_KEYCLOAK_URL ?= "https://sso.prod-preview.openshift.io"
+f8toggles=f8toggles
 
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
@@ -128,6 +132,36 @@ generate: $(DESIGNS) $(GOAGEN_BIN) deps ## Generate GOA sources. Only necessary 
 .PHONY: run
 run: build ## Run fabric8-toggles-service.
 	$(BUILD_DIR)/$(REGISTRY_IMAGE) --config config.yaml
+
+.PHONY: login
+## login to oc minishift
+login:
+	oc login -u developer -p developer
+
+.PHONY: docker-login
+## login to docker
+docker-login:
+	minishift docker-env
+	docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry)
+
+$(f8toggles):
+	oc new-project f8toggles
+	touch $@
+
+.PHONY: deploy-minishift
+## deploy toggles server on minishift
+deploy-minishift: docker-login image login $(f8toggles)
+	kedge apply -f ./minishift/toggles-db.yml
+	kedge apply -f ./minishift/toggles.yml
+	oc expose svc toggles
+	F8_AUTH_URL=$(F8_AUTH_URL) F8_KEYCLOAK_URL=$(F8_KEYCLOAK_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f ./minishift/toggles-service.yml
+	oc expose svc toggles-service
+
+.PHONY: clean-minishift
+## deploy toggles server on minishift
+clean-minishift: login
+	oc project f8toggles && oc delete project f8toggles && rm -rf $(f8toggles)
+
 
 # For the global "clean" target all targets in this variable will be executed
 CLEAN_TARGETS =
