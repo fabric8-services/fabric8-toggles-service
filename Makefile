@@ -67,7 +67,7 @@ image: clean-artifacts build-linux ## Builds the container image using the binar
 	  --build-arg BINARY=$(BUILD_DIR)/$(REGISTRY_IMAGE) \
 	  -f Dockerfile .
 
-push: image ## Pushes the container image to the registry
+push-openshift: image ## Pushes the container image to the OpenShift online registry
 	$(call check_defined, REGISTRY_USER, "You need to pass the registry user via REGISTRY_USER.")
 	$(call check_defined, REGISTRY_PASSWORD, "You need to pass the registry password via REGISTRY_PASSWORD.")
 	docker login -u $(REGISTRY_USER) -p $(REGISTRY_PASSWORD) $(REGISTRY_URI)
@@ -133,14 +133,14 @@ generate: $(DESIGNS) $(GOAGEN_BIN) deps ## Generate GOA sources. Only necessary 
 run: build ## Run fabric8-toggles-service.
 	$(BUILD_DIR)/$(REGISTRY_IMAGE) --config config.yaml
 
-.PHONY: login
+.PHONY: minishift-login
 ## login to oc minishift
-login:
+minishift-login:
 	oc login -u developer -p developer
 
-.PHONY: docker-login
-## login to docker
-docker-login:
+.PHONY: minishift-registry-login
+## login to the registry in Minishift (to push images)
+minishift-registry-login:
 	minishift docker-env
 	docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry)
 
@@ -149,8 +149,7 @@ $(f8toggles):
 	touch $@
 
 .PHONY: deploy-minishift
-## deploy toggles server on minishift
-deploy-minishift: docker-login image login $(f8toggles)
+deploy-minishift: minishift-registry-login image minishift-login $(f8toggles) ## deploy toggles server on minishift
 	kedge apply -f ./minishift/toggles-db.yml
 	kedge apply -f ./minishift/toggles.yml
 	oc expose svc toggles
@@ -158,8 +157,7 @@ deploy-minishift: docker-login image login $(f8toggles)
 	oc expose svc toggles-service
 
 .PHONY: clean-minishift
-## deploy toggles server on minishift
-clean-minishift: login
+clean-minishift: login ## removes the f8toggles project on Minishift
 	oc project f8toggles && oc delete project f8toggles && rm -rf $(f8toggles)
 
 

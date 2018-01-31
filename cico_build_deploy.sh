@@ -63,5 +63,5 @@ make all
 
 if [[ "$JOB_NAME" = "devtools-fabric8-toggles-service-build-master" ]]; then
     TAG=$(echo ${GIT_COMMIT} | cut -c1-${DEVSHIFT_TAG_LEN})
-    make push REGISTRY_USER=${DEVSHIFT_USERNAME} REGISTRY_PASSWORD=${DEVSHIFT_PASSWORD} IMAGE_TAG=${TAG}
+    make push-openshift REGISTRY_USER=${DEVSHIFT_USERNAME} REGISTRY_PASSWORD=${DEVSHIFT_PASSWORD} IMAGE_TAG=${TAG}
 fi
