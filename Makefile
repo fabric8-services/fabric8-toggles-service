@@ -149,8 +149,13 @@ $(f8toggles):
 	oc new-project f8toggles
 	touch $@
 
+.PHONY: push-minishift
+push-minishift: minishift-login minishift-registry-login image $(f8toggles)
+	docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${f8toggles}/${REGISTRY_IMAGE}:latest
+	docker push $(shell minishift openshift registry)/${f8toggles}/${REGISTRY_IMAGE}:latest
+
 .PHONY: deploy-minishift
-deploy-minishift: image minishift-login minishift-registry-login $(f8toggles) ## deploy toggles server on minishift
+deploy-minishift: push-minishift ## deploy toggles server on minishift
 	kedge apply -f ./minishift/toggles-db.yml
 	kedge apply -f ./minishift/toggles.yml
 	oc expose svc toggles
@@ -158,7 +163,7 @@ deploy-minishift: image minishift-login minishift-registry-login $(f8toggles) ##
 	oc expose svc toggles-service
 
 .PHONY: clean-minishift
-clean-minishift: login ## removes the f8toggles project on Minishift
+clean-minishift: minishift-login ## removes the f8toggles project on Minishift
 	oc project f8toggles && oc delete project f8toggles && rm -rf $(f8toggles)
 
 
