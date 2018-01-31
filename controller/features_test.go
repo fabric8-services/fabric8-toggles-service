@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
 	"testing"
 
 	unleashapi "github.com/Unleash/unleash-client-go/api"
-	unleashstrategy "github.com/Unleash/unleash-client-go/strategy"
 	jwt "github.com/dgrijalva/jwt-go"
 	jwtrequest "github.com/dgrijalva/jwt-go/request"
 	"github.com/dnaeon/go-vcr/cassette"
@@ -20,14 +20,13 @@ import (
 	"github.com/fabric8-services/fabric8-toggles-service/app/test"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
-	unleashtestclient "github.com/fabric8-services/fabric8-toggles-service/test/unleashclient"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var disabledFeature, noStrategyFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature unleashapi.Feature
+var disabledFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature unleashapi.Feature
 
 func init() {
 	// features
@@ -35,13 +34,6 @@ func init() {
 		Name:        "disabledFeature",
 		Description: "Disabled feature",
 		Enabled:     false,
-		Strategies:  []unleashapi.Strategy{},
-	}
-
-	noStrategyFeature = unleashapi.Feature{
-		Name:        "noStrategyFeature",
-		Description: "Feature with no strategy",
-		Enabled:     true,
 		Strategies:  []unleashapi.Strategy{},
 	}
 
@@ -100,6 +92,53 @@ func init() {
 	}
 }
 
+// MockTogglesClient a mock of the toggles client
+type MockTogglesClient struct {
+}
+
+func (m *MockTogglesClient) IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, userLevel string) bool {
+	if reflect.DeepEqual(feature, disabledFeature) {
+		return false
+	}
+	if reflect.DeepEqual(feature, multiStrategiesFeature) && userLevel == featuretoggles.ExperimentalLevel {
+		return true
+	}
+	if reflect.DeepEqual(feature, multiStrategiesFeature) && userLevel == featuretoggles.BetaLevel {
+		return true
+	}
+	if reflect.DeepEqual(feature, releasedFeature) {
+		return true
+	}
+
+	return false
+}
+
+func (m *MockTogglesClient) GetFeatures(ctx context.Context, names []string) []*unleashapi.Feature {
+	if reflect.DeepEqual(names, []string{disabledFeature.Name, multiStrategiesFeature.Name}) {
+		return []*unleashapi.Feature{&disabledFeature, &multiStrategiesFeature}
+	}
+	return nil
+}
+
+func (m *MockTogglesClient) GetFeature(name string) *unleashapi.Feature {
+	switch name {
+	case disabledFeature.Name:
+		return &disabledFeature
+	case singleStrategyFeature.Name:
+		return &singleStrategyFeature
+	case multiStrategiesFeature.Name:
+		return &multiStrategiesFeature
+	case releasedFeature.Name:
+		return &releasedFeature
+	default:
+		return nil
+	}
+}
+
+func (m *MockTogglesClient) Close() error {
+	return nil
+}
+
 type TestFeatureControllerConfig struct {
 	authServiceURL string
 }
@@ -108,19 +147,12 @@ func (c *TestFeatureControllerConfig) GetAuthServiceURL() string {
 	return c.authServiceURL
 }
 
-func NewFeaturesController(r *recorder.Recorder, features ...unleashapi.Feature) (*goa.Service, *controller.FeaturesController) {
+func NewFeaturesController(httpClient *http.Client, togglesClient featuretoggles.Client) (*goa.Service, *controller.FeaturesController) {
 	svc := goa.New("feature")
-	unleashClient := &unleashtestclient.MockUnleashClient{
-		Features: features,
-		Strategies: []unleashstrategy.Strategy{
-			&featuretoggles.EnableByLevelStrategy{},
-		},
-	}
 	ctrl := controller.NewFeaturesController(svc,
-		featuretoggles.NewClientWithState(unleashClient, true),
-		&http.Client{
-			Transport: r.Transport,
-		},
+		// featuretoggles.NewClientWithState(unleashClient, true),
+		&MockTogglesClient{},
+		httpClient,
 		&TestFeatureControllerConfig{
 			authServiceURL: "http://auth",
 		},
@@ -129,12 +161,10 @@ func NewFeaturesController(r *recorder.Recorder, features ...unleashapi.Feature)
 }
 
 func TestShowFeature(t *testing.T) {
-
 	// given
 	r := newRecorder(t, "../test/data/controller/auth_get_user")
 	defer r.Stop()
-
-	svc, ctrl := NewFeaturesController(r, disabledFeature, noStrategyFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature)
+	svc, ctrl := NewFeaturesController(&http.Client{Transport: r.Transport}, &MockTogglesClient{})
 
 	t.Run("fail", func(t *testing.T) {
 		t.Run("unauthorized", func(t *testing.T) {
@@ -149,82 +179,40 @@ func TestShowFeature(t *testing.T) {
 
 	t.Run("disabled for user", func(t *testing.T) {
 
-		t.Run("user with not enough level", func(t *testing.T) {
-
-			t.Run("disabled for all", func(t *testing.T) {
-				// when
-				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_beta_level"), svc, ctrl, disabledFeature.Name)
-				// then
-				require.NotNil(t, appFeature)
-				expectedFeatureData := &app.Feature{
-					ID:   disabledFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     disabledFeature.Description,
-						Enabled:         false,
-						UserEnabled:     false,
-						EnablementLevel: nil, // feature is disabled, hence no opt-in level would work anyways
-					},
-				}
-				assert.Equal(t, expectedFeatureData, appFeature.Data)
-			})
-
-			t.Run("enabled for internal", func(t *testing.T) {
-				// when
-				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_no_level"), svc, ctrl, singleStrategyFeature.Name)
-				// then
-				require.NotNil(t, appFeature)
-				expectedFeatureData := &app.Feature{
-					ID:   singleStrategyFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     singleStrategyFeature.Description,
-						Enabled:         true,
-						UserEnabled:     false,
-						EnablementLevel: nil, // because the feature level is internal but the user is external
-					},
-				}
-				assert.Equal(t, expectedFeatureData, appFeature.Data)
-			})
+		t.Run("disabled for all", func(t *testing.T) {
+			// when
+			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_beta_level"), svc, ctrl, disabledFeature.Name)
+			// then
+			require.NotNil(t, appFeature)
+			expectedFeatureData := &app.Feature{
+				ID:   disabledFeature.Name,
+				Type: "features",
+				Attributes: &app.FeatureAttributes{
+					Description:     disabledFeature.Description,
+					Enabled:         false,
+					UserEnabled:     false,
+					EnablementLevel: nil, // feature is disabled, hence no opt-in level would work anyways
+				},
+			}
+			assert.Equal(t, expectedFeatureData, appFeature.Data)
 		})
 
 		t.Run("user with no level", func(t *testing.T) {
-
-			t.Run("disabled for all", func(t *testing.T) {
-				// when
-				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_beta_level"), svc, ctrl, disabledFeature.Name)
-				// then
-				require.NotNil(t, appFeature)
-				expectedFeatureData := &app.Feature{
-					ID:   disabledFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     disabledFeature.Description,
-						Enabled:         false,
-						UserEnabled:     false,
-						EnablementLevel: nil, // feature is disabled, hence no opt-in level would work anyways
-					},
-				}
-				assert.Equal(t, expectedFeatureData, appFeature.Data)
-			})
-
-			t.Run("enabled for internal", func(t *testing.T) {
-				// when
-				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_no_level"), svc, ctrl, singleStrategyFeature.Name)
-				// then
-				require.NotNil(t, appFeature)
-				expectedFeatureData := &app.Feature{
-					ID:   singleStrategyFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     singleStrategyFeature.Description,
-						Enabled:         true,
-						UserEnabled:     false,
-						EnablementLevel: nil, // because the feature level is internal but the user is external
-					},
-				}
-				assert.Equal(t, expectedFeatureData, appFeature.Data)
-			})
+			// when
+			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, "user_no_level"), svc, ctrl, singleStrategyFeature.Name)
+			// then
+			require.NotNil(t, appFeature)
+			expectedFeatureData := &app.Feature{
+				ID:   singleStrategyFeature.Name,
+				Type: "features",
+				Attributes: &app.FeatureAttributes{
+					Description:     singleStrategyFeature.Description,
+					Enabled:         true,
+					UserEnabled:     false,
+					EnablementLevel: nil, // because the feature level is internal but the user is external
+				},
+			}
+			assert.Equal(t, expectedFeatureData, appFeature.Data)
 		})
 
 	})
@@ -345,7 +333,7 @@ func TestListFeatures(t *testing.T) {
 	// given
 	r := newRecorder(t, "../test/data/controller/auth_get_user")
 	defer r.Stop()
-	svc, ctrl := NewFeaturesController(r, disabledFeature, noStrategyFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature)
+	svc, ctrl := NewFeaturesController(&http.Client{Transport: r.Transport}, &MockTogglesClient{})
 
 	t.Run("fail", func(t *testing.T) {
 		t.Run("unauthorized", func(t *testing.T) {

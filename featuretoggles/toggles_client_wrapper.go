@@ -19,8 +19,16 @@ type UnleashClient interface {
 	Close() error
 }
 
-// Client the toggle client
-type Client struct {
+// Client the toggle client interface
+type Client interface {
+	IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, userLevel string) bool
+	GetFeatures(ctx context.Context, names []string) []*unleashapi.Feature
+	GetFeature(name string) *unleashapi.Feature
+	Close() error
+}
+
+// ClientImpl the toggle client default impl
+type ClientImpl struct {
 	UnleashClient  UnleashClient
 	clientListener *UnleashClientListener
 }
@@ -31,8 +39,8 @@ type ToggleServiceConfiguration interface {
 	GetTogglesURL() string
 }
 
-// NewClient returns a new client to the toggle feature service including the default underlying unleash client initialized
-func NewClient(serviceName string, config ToggleServiceConfiguration) (*Client, error) {
+// NewDefaultClient returns a new client to the toggle feature service including the default underlying unleash client initialized
+func NewDefaultClient(serviceName string, config ToggleServiceConfiguration) (Client, error) {
 	l := UnleashClientListener{ready: false}
 	unleashclient, err := unleash.NewClient(
 		unleash.WithAppName(serviceName),
@@ -46,37 +54,37 @@ func NewClient(serviceName string, config ToggleServiceConfiguration) (*Client, 
 	if err != nil {
 		return nil, err
 	}
-	result := NewCustomClient(unleashclient, &l)
-	return result, nil
+	return &ClientImpl{
+		UnleashClient:  unleashclient,
+		clientListener: &l,
+	}, nil
 }
 
 // NewClientWithState returns a new client to the toggle feature service with a pre-initialized unleash client listener
-func NewClientWithState(unleashclient UnleashClient, ready bool) *Client {
-	return NewCustomClient(unleashclient, &UnleashClientListener{ready: ready})
-}
-
-// NewCustomClient returns a new client to the toggle feature service with a pre-initialized unleash client
-func NewCustomClient(unleashclient UnleashClient, l *UnleashClientListener) *Client {
-	result := &Client{
+func NewClientWithState(unleashclient UnleashClient, ready bool) Client {
+	return &ClientImpl{
 		UnleashClient:  unleashclient,
-		clientListener: l,
+		clientListener: &UnleashClientListener{ready: ready},
 	}
-	return result
 }
 
 // Close closes the underlying Unleash client
-func (c *Client) Close() error {
+func (c *ClientImpl) Close() error {
 	return c.UnleashClient.Close()
 }
 
 // GetFeature returns the feature given its name
-func (c *Client) GetFeature(name string) *unleashapi.Feature {
+func (c *ClientImpl) GetFeature(name string) *unleashapi.Feature {
 	return c.UnleashClient.GetFeature(name)
 }
 
 // GetFeatures returns the features fron their names
-func (c *Client) GetFeatures(names []string) []*unleashapi.Feature {
+func (c *ClientImpl) GetFeatures(ctx context.Context, names []string) []*unleashapi.Feature {
 	result := make([]*unleashapi.Feature, 0)
+	if !c.clientListener.ready {
+		log.Warn(ctx, nil, "unable to list features due to: client is not ready")
+		return result
+	}
 	for _, name := range names {
 		f := c.UnleashClient.GetFeature(name)
 		if f != nil {
@@ -87,27 +95,17 @@ func (c *Client) GetFeatures(names []string) []*unleashapi.Feature {
 }
 
 // IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given user level
-func (c *Client) IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, userLevel *string) bool {
-	if userLevel == nil {
-		// accept if feature has (at least) one strategy with the `released` level
-		for _, s := range feature.Strategies {
-			if s.Parameters[LevelParameter] == ReleasedLevel {
-				log.Debug(ctx, nil, "considering feature as enabled as it is released")
-				return true
-			}
-		}
-		log.Warn(ctx, nil, "skipping check for toggle feature due to: user level is nil")
-		return false
-	}
+func (c *ClientImpl) IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, userLevel string) bool {
 	if !c.clientListener.ready {
 		log.Warn(ctx, nil, "unable to check if feature is enabled due to: client is not ready")
 		return false
 	}
+	log.Debug(ctx, map[string]interface{}{"user_level": userLevel}, "checking if feature is enabled for user...")
 	return c.UnleashClient.IsEnabled(
 		feature.Name,
 		unleash.WithContext(unleashcontext.Context{
 			Properties: map[string]string{
-				LevelParameter: *userLevel,
+				LevelParameter: userLevel,
 			},
 		}),
 	)

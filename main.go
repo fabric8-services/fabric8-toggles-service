@@ -59,13 +59,13 @@ func main() {
 	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
 	// init the toggle client
-	toggleClient, err := featuretoggles.NewClient("fabric8-toggle-service", config)
+	toggleClient, err := featuretoggles.NewDefaultClient("fabric8-toggle-service", config)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to create toogle client")
-
 	}
+
 	// Mount "features" controller
 	featuresCtrl := controller.NewFeaturesController(service, toggleClient, http.DefaultClient, config)
 	app.MountFeaturesController(service, featuresCtrl)
