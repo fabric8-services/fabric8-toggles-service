@@ -136,20 +136,21 @@ run: build ## Run fabric8-toggles-service.
 .PHONY: minishift-login
 ## login to oc minishift
 minishift-login:
-	oc login -u developer -p developer
+	@echo "Login to minishift..."
+	@oc login --insecure-skip-tls-verify=true -u developer -p developer
 
 .PHONY: minishift-registry-login
 ## login to the registry in Minishift (to push images)
 minishift-registry-login:
-	minishift docker-env
-	docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry)
+	@echo "Login to minishift registry..."
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry)
 
 $(f8toggles):
 	oc new-project f8toggles
 	touch $@
 
 .PHONY: deploy-minishift
-deploy-minishift: minishift-registry-login image minishift-login $(f8toggles) ## deploy toggles server on minishift
+deploy-minishift: image minishift-login minishift-registry-login $(f8toggles) ## deploy toggles server on minishift
 	kedge apply -f ./minishift/toggles-db.yml
 	kedge apply -f ./minishift/toggles.yml
 	oc expose svc toggles
