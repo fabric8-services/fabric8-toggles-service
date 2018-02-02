@@ -51,7 +51,6 @@ var _ = a.Resource("features", func() {
 	a.BasePath("/features")
 
 	a.Action("show", func() {
-		a.Security("jwt")
 		a.Routing(
 			a.GET("/:featureName"),
 		)
@@ -63,11 +62,9 @@ var _ = a.Resource("features", func() {
 		a.Response(d.BadRequest, jsonapi.JSONAPIErrors)
 		a.Response(d.NotFound, jsonapi.JSONAPIErrors)
 		a.Response(d.InternalServerError, jsonapi.JSONAPIErrors)
-		a.Response(d.Unauthorized, jsonapi.JSONAPIErrors)
 	})
 
 	a.Action("list", func() {
-		a.Security("jwt")
 		a.Routing(
 			a.GET(""),
 		)
@@ -79,6 +76,5 @@ var _ = a.Resource("features", func() {
 		a.Response(d.BadRequest, jsonapi.JSONAPIErrors)
 		a.Response(d.NotFound, jsonapi.JSONAPIErrors)
 		a.Response(d.InternalServerError, jsonapi.JSONAPIErrors)
-		a.Response(d.Unauthorized, jsonapi.JSONAPIErrors)
 	})
 })

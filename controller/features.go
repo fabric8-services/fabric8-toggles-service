@@ -47,13 +47,12 @@ type FeaturesController struct {
 // List runs the list action.
 func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 	jwtToken := goajwt.ContextJWT(ctx)
-	if jwtToken == nil {
-		log.Error(ctx.Context, map[string]interface{}{}, "Unable to retrieve token")
-		return errorhandler.JSONErrorResponse(ctx, errors.NewUnauthorizedError("Missing JSON Web Token in request header"))
-	}
-	user, err := c.getUserProfile(ctx)
-	if err != nil {
-		return errorhandler.JSONErrorResponse(ctx, err)
+	var user *authservice.User
+	if jwtToken != nil {
+		var err error
+		if user, err = c.getUserProfile(ctx); err != nil {
+			return errorhandler.JSONErrorResponse(ctx, err)
+		}
 	}
 	features := c.togglesClient.GetFeatures(ctx, ctx.Names)
 	appFeatures := c.convertFeatures(ctx, features, user)
@@ -63,13 +62,12 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 // Show runs the show action.
 func (c *FeaturesController) Show(ctx *app.ShowFeaturesContext) error {
 	jwtToken := goajwt.ContextJWT(ctx)
-	if jwtToken == nil {
-		log.Error(ctx.Context, map[string]interface{}{}, "Unable to retrieve token")
-		return errorhandler.JSONErrorResponse(ctx, errors.NewUnauthorizedError("Missing JSON Web Token in request header"))
-	}
-	user, err := c.getUserProfile(ctx)
-	if err != nil {
-		return errorhandler.JSONErrorResponse(ctx, err)
+	var user *authservice.User
+	if jwtToken != nil {
+		var err error
+		if user, err = c.getUserProfile(ctx); err != nil {
+			return errorhandler.JSONErrorResponse(ctx, err)
+		}
 	}
 	featureName := ctx.FeatureName
 	feature := c.togglesClient.GetFeature(featureName)
@@ -139,19 +137,18 @@ func (c *FeaturesController) convertFeature(ctx context.Context, feature *unleas
 }
 
 func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *unleashapi.Feature, user *authservice.User) *app.Feature {
-	userEmail := user.Data.Attributes.Email
-	userEmailVerified := user.Data.Attributes.EmailVerified
 	internalUser := false
-	// internal users have may be able to access the feature by opting-in to the `internal` level of features.
-	if userEmailVerified != nil && *userEmailVerified && userEmail != nil && strings.HasSuffix(*userEmail, "@redhat.com") {
-		internalUser = true
-	}
-	var userLevel string
-	if user.Data.Attributes.FeatureLevel == nil {
-		// in case where the user profile retrieved from `auth` would not contain a `featureLevel` value, assume that the user will only access released features
-		userLevel = featuretoggles.ReleasedLevel
-	} else {
-		userLevel = *user.Data.Attributes.FeatureLevel
+	userLevel := featuretoggles.ReleasedLevel
+	if user != nil {
+		userEmail := user.Data.Attributes.Email
+		userEmailVerified := user.Data.Attributes.EmailVerified
+		// internal users have may be able to access the feature by opting-in to the `internal` level of features.
+		if userEmailVerified != nil && *userEmailVerified && userEmail != nil && strings.HasSuffix(*userEmail, "@redhat.com") {
+			internalUser = true
+		}
+		if user.Data.Attributes.FeatureLevel != nil {
+			userLevel = *user.Data.Attributes.FeatureLevel
+		}
 	}
 	enabledForUser := c.togglesClient.IsFeatureEnabled(ctx, *feature, userLevel)
 	log.Debug(ctx, map[string]interface{}{"internal_user": internalUser}, "converting feature")

@@ -102,11 +102,32 @@ This is a temporary settings, the fabric8-server should bootstrap those value.
 `Test your service locally with a curl`::
 
 ```
-$ curl -H "Authorization: Bearer XXX.YYY.ZZZ" http://localhost:8080/api/features
+$ curl http://localhost:8080/api/features?names\=Planner\&names\=Applications
+{
+  "data": [
+    {
+      "attributes": {
+        "description": "Planner's description",
+        "enabled": true,
+        "enablement-level": "released",
+        "user-enabled": true
+      },
+      "id": "Planner",
+      "type": "features"
+    },
+    {
+      "attributes": {
+        "description": "Application's description",
+        "enabled": true,
+        "enablement-level": "beta",
+        "user-enabled": false
+      },
+      "id": "Applications",
+      "type": "features"
+    }"type": "features"
+  ]
+}
 ```
-
-where `XXX.YYY.ZZZ` is your OAuth2 Keycloak token. Here we are targeting defaultKeycloakURL ie: `https://auth.prod-preview.openshift.io`.
-To get this token, login to link:https://prod-preview.openshift.io[OSiO prod-preview] with google devtools console retrieve `auth_token`.
 
 === Docker build
 
