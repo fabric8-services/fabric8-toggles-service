@@ -85,14 +85,14 @@ You're now ready to deploy the service. 2 options:
 
 `Deploy fabric8-toggles-service on your localhost`::
 
-* Run `F8_TOGGLES_URL=http://toggles-f8toggles.192.168.64.4.xip.io/api F8_AUTH_URL=https://auth.prod-preview.openshift.io make run`
+* Run `F8_TOGGLES_URL=http://toggles-fabric8.192.168.64.4.xip.io/api F8_AUTH_URL=https://auth.prod-preview.openshift.io make run`
 * where `F8_TOGGLES_URL` points to the exposed route on minishift and `F8_AUTH_URL` target prod-preview.
 
 === Configure
 `Configure unleash database`::
 
 * Go to fabric8-toggles-server admin console (ie: the unleash admin console)
-   http://fabric8-toggles-f8toggles.MINISHIFT_IP.nip.io/#/strategies add a strategy with name `enableByLevel` with a parameter `level`
+   http://fabric8-toggles-fabric8.MINISHIFT_IP.nip.io/#/strategies add a strategy with name `enableByLevel` with a parameter `level`
 * Go to features list, add a feature with name "feature1", give a description and add the newly created strategy, enter `Red Hat`
 for `level`. Enable the feature.
 

@@ -2,15 +2,16 @@ package configuration
 
 import (
 	"fmt"
+	"strings"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
-	"strings"
 )
 
 const (
 	defaultLogLevel      = "info"
-	defaultTogglesURL    = "http://f8toggles/api"
+	defaultTogglesURL    = "http://fabric8/api"
 	defaultKeycloakURL   = "https://auth.openshift.io"
 	defaultKeycloakRealm = "fabric8"
 	// DevModeRsaPrivateKey for signing JWT Tokens in Dev Mode

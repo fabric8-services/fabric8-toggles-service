@@ -12,3 +12,8 @@ services:
   ports:
     - port: 4242
       nodePort: 31200
+routes:
+- name: toggles
+  to:
+    kind: Service
+    name: toggles
