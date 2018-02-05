@@ -151,8 +151,8 @@ $(fabric8):
 
 .PHONY: push-minishift
 push-minishift: minishift-login minishift-registry-login image $(fabric8)
-	docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
-	docker push $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker push $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
 
 .PHONY: deploy-minishift
 deploy-minishift: push-minishift ## deploy toggles server on minishift
