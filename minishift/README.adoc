@@ -43,7 +43,7 @@ We're going to deploy  a postgres database using a template that fetch an alread
 Once you have installed `minishift` and `oc`, run the following commands to create all deployments, replica sets, pods and services in the default namespace:
 ```
 # create project
-oc new-project f8toggles
+oc new-project fabric8
 # deployment configuration, service for toggles-db
 kedge apply -f toggles-db.yml
 ```
@@ -102,7 +102,7 @@ unleashdb=> \dt+
 
 Once the route is created, go to f8toggle admin console:
 
-http://fabric8-toggles-f8toggles.<YOUR_IP>.nip.io (as displayed in your minishit console).
+http://fabric8-toggles-fabric8.<YOUR_IP>.nip.io (as displayed in your minishit console).
 where:
 * <YOUR_IP> could be find out by `minishift ip`. (it's also display in the log with the `minishift start`command)
 * use developer /developer as username / password
@@ -135,6 +135,6 @@ oc expose svc toggles-service
 
 To check id correctly deployed:
 ```
-> curl http://fabric8-toggles-service-f8toggles.<YOUR_IP>.nip.io/api/features/Planner
+> curl http://fabric8-toggles-service-fabric8.<YOUR_IP>.nip.io/api/features/Planner
 {"errors":[{"code":"jwt_security_error","detail":"missing header \"Authorization\"","id":"VU1H/HOa","status":"401","title":"Unauthorized"}]}
 ```

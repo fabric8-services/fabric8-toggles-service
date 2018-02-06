@@ -16,7 +16,7 @@ BUILD_DIR = bin
 F8_AUTH_URL ?= https://auth.prod-preview.openshift.io
 F8_TOGGLES_URL ?= "http://toggles:4242/api"
 F8_KEYCLOAK_URL ?= "https://sso.prod-preview.openshift.io"
-f8toggles=f8toggles
+fabric8=fabric8
 
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
@@ -145,26 +145,24 @@ minishift-registry-login:
 	@echo "Login to minishift registry..."
 	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry)
 
-$(f8toggles):
-	oc new-project f8toggles
+$(fabric8):
+	oc new-project fabric8
 	touch $@
 
 .PHONY: push-minishift
-push-minishift: minishift-login minishift-registry-login image $(f8toggles)
-	docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${f8toggles}/${REGISTRY_IMAGE}:latest
-	docker push $(shell minishift openshift registry)/${f8toggles}/${REGISTRY_IMAGE}:latest
+push-minishift: minishift-login minishift-registry-login image $(fabric8)
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker push $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
 
 .PHONY: deploy-minishift
 deploy-minishift: push-minishift ## deploy toggles server on minishift
 	kedge apply -f ./minishift/toggles-db.yml
 	kedge apply -f ./minishift/toggles.yml
-	oc expose svc toggles
 	F8_AUTH_URL=$(F8_AUTH_URL) F8_KEYCLOAK_URL=$(F8_KEYCLOAK_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f ./minishift/toggles-service.yml
-	oc expose svc toggles-service
 
 .PHONY: clean-minishift
-clean-minishift: minishift-login ## removes the f8toggles project on Minishift
-	oc project f8toggles && oc delete project f8toggles && rm -rf $(f8toggles)
+clean-minishift: minishift-login ## removes the fabric8 project on Minishift
+	oc project fabric8 && oc delete project fabric8 && rm -rf $(fabric8)
 
 
 # For the global "clean" target all targets in this variable will be executed
