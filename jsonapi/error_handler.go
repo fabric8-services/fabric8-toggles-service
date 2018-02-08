@@ -1,4 +1,4 @@
-package errorhandler
+package jsonapi
 
 import (
 	"crypto/rand"

@@ -1,17 +1,16 @@
 package design
 
 import (
-	"github.com/fabric8-services/fabric8-toggles-service/jsonapi"
 	d "github.com/goadesign/goa/design"
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-var featureSingle = jsonapi.JSONSingle(
+var featureSingle = JSONSingle(
 	"Feature", "Holds a single feature",
 	feature,
 	nil)
 
-var featureList = jsonapi.JSONList(
+var featureList = JSONList(
 	"Feature", "Holds the list of features",
 	feature,
 	nil,
@@ -59,9 +58,10 @@ var _ = a.Resource("features", func() {
 		})
 		a.Description("Show feature details.")
 		a.Response(d.OK, featureSingle)
-		a.Response(d.BadRequest, jsonapi.JSONAPIErrors)
-		a.Response(d.NotFound, jsonapi.JSONAPIErrors)
-		a.Response(d.InternalServerError, jsonapi.JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("list", func() {
@@ -73,8 +73,9 @@ var _ = a.Resource("features", func() {
 		})
 		a.Description("Show a list of features by their names.")
 		a.Response(d.OK, featureList)
-		a.Response(d.BadRequest, jsonapi.JSONAPIErrors)
-		a.Response(d.NotFound, jsonapi.JSONAPIErrors)
-		a.Response(d.InternalServerError, jsonapi.JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

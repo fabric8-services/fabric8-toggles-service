@@ -2,11 +2,8 @@ package controller_test
 
 import (
 	"context"
-	"crypto/rsa"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"reflect"
 	"testing"
 
@@ -14,12 +11,14 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	jwtrequest "github.com/dgrijalva/jwt-go/request"
 	"github.com/dnaeon/go-vcr/cassette"
-	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/fabric8-services/fabric8-auth/log"
+	"github.com/fabric8-services/fabric8-auth/token"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/app/test"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
+	testsupport "github.com/fabric8-services/fabric8-toggles-service/test"
+	"github.com/fabric8-services/fabric8-toggles-service/test/recorder"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/assert"
@@ -149,39 +148,41 @@ func (c *TestFeatureControllerConfig) GetAuthServiceURL() string {
 	return c.authServiceURL
 }
 
-func NewFeaturesController(httpClient *http.Client, togglesClient featuretoggles.Client) (*goa.Service, *controller.FeaturesController) {
+func (c *TestFeatureControllerConfig) GetTogglesURL() string {
+	return ""
+}
+
+func NewFeaturesController(tokenParser token.Parser, httpClient *http.Client, togglesClient featuretoggles.Client) (*goa.Service, *controller.FeaturesController) {
 	svc := goa.New("feature")
 	ctrl := controller.NewFeaturesController(svc,
-		// featuretoggles.NewClientWithState(unleashClient, true),
-		&MockTogglesClient{},
-		httpClient,
+		tokenParser,
 		&TestFeatureControllerConfig{
 			authServiceURL: "http://auth",
 		},
+		controller.WithHTTPClient(httpClient),
+		controller.WithTogglesClient(&MockTogglesClient{}),
 	)
 	return svc, ctrl
 }
 
-func TestShowFeature(t *testing.T) {
+func TestShowFeatures(t *testing.T) {
 	// given
-	r := newRecorder(t, "../test/data/controller/auth_get_user")
+	r, err := recorder.New("../test/data/controller/auth_get_user", recorder.WithMatcher(JWTMatcher()))
+	require.NoError(t, err)
 	defer r.Stop()
-	svc, ctrl := NewFeaturesController(&http.Client{Transport: r.Transport}, &MockTogglesClient{})
-
-	t.Run("fail", func(t *testing.T) {
-		t.Run("not found", func(t *testing.T) {
-			// when/then
-			userID := "user_beta_level"
-			test.ShowFeaturesNotFound(t, createValidContext(t, &userID), svc, ctrl, "UnknownFeature")
-		})
-	})
+	tokenParser := NewParserMock(t)
+	tokenParser.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
+		return nil, nil // what matters here is that the manager *does not* return an error
+	}
+	svc, ctrl := NewFeaturesController(tokenParser, &http.Client{Transport: r.Transport}, &MockTogglesClient{})
 
 	t.Run("disabled for user", func(t *testing.T) {
 
 		t.Run("disabled for all", func(t *testing.T) {
 			// when
-			userID := "user_beta_level"
-			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, &userID), svc, ctrl, disabledFeature.Name)
+			ctx, err := createValidContext("user_beta_level")
+			require.NoError(t, err)
+			_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, disabledFeature.Name)
 			// then
 			require.NotNil(t, appFeature)
 			expectedFeatureData := &app.Feature{
@@ -199,8 +200,9 @@ func TestShowFeature(t *testing.T) {
 
 		t.Run("user with no level", func(t *testing.T) {
 			// when
-			userID := "user_no_level"
-			_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, &userID), svc, ctrl, singleStrategyFeature.Name)
+			ctx, err := createValidContext("user_no_level")
+			require.NoError(t, err)
+			_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, singleStrategyFeature.Name)
 			// then
 			require.NotNil(t, appFeature)
 			expectedFeatureData := &app.Feature{
@@ -226,8 +228,9 @@ func TestShowFeature(t *testing.T) {
 
 				t.Run("experimental user", func(t *testing.T) {
 					// when
-					userID := "user_experimental_level"
-					_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, &userID), svc, ctrl, multiStrategiesFeature.Name)
+					ctx, err := createValidContext("user_experimental_level")
+					require.NoError(t, err)
+					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, multiStrategiesFeature.Name)
 					// then
 					require.NotNil(t, appFeature)
 					enablementLevel := featuretoggles.BetaLevel
@@ -250,8 +253,9 @@ func TestShowFeature(t *testing.T) {
 
 			t.Run("user with no level", func(t *testing.T) {
 				// when
-				userID := "user_no_level"
-				_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, &userID), svc, ctrl, releasedFeature.Name)
+				ctx, err := createValidContext("user_no_level")
+				require.NoError(t, err)
+				_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
 				// then
 				require.NotNil(t, appFeature)
 				enablementLevel := featuretoggles.ReleasedLevel
@@ -272,8 +276,9 @@ func TestShowFeature(t *testing.T) {
 
 				t.Run("experimental level", func(t *testing.T) {
 					// when
-					userID := "user_experimental_level"
-					_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, &userID), svc, ctrl, releasedFeature.Name)
+					ctx, err := createValidContext("user_experimental_level")
+					require.NoError(t, err)
+					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
 					// then
 					require.NotNil(t, appFeature)
 					enablementLevel := featuretoggles.ReleasedLevel
@@ -292,8 +297,9 @@ func TestShowFeature(t *testing.T) {
 
 				t.Run("released level", func(t *testing.T) {
 					// when
-					userID := "user_released_level"
-					_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, &userID), svc, ctrl, releasedFeature.Name)
+					ctx, err := createValidContext("user_released_level")
+					require.NoError(t, err)
+					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
 					// then
 					require.NotNil(t, appFeature)
 					enablementLevel := featuretoggles.ReleasedLevel
@@ -312,8 +318,9 @@ func TestShowFeature(t *testing.T) {
 
 				t.Run("nopreproduction level", func(t *testing.T) {
 					// when
-					userID := "user_nopreproduction_level"
-					_, appFeature := test.ShowFeaturesOK(t, createValidContext(t, &userID), svc, ctrl, releasedFeature.Name)
+					ctx, err := createValidContext("user_nopreproduction_level")
+					require.NoError(t, err)
+					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
 					// then
 					require.NotNil(t, appFeature)
 					enablementLevel := featuretoggles.ReleasedLevel
@@ -332,20 +339,47 @@ func TestShowFeature(t *testing.T) {
 			})
 		})
 	})
+
+	t.Run("fail", func(t *testing.T) {
+		t.Run("not found", func(t *testing.T) {
+			// when/then
+			ctx, err := createValidContext("user_beta_level")
+			require.NoError(t, err)
+			test.ShowFeaturesNotFound(t, ctx, svc, ctrl, "UnknownFeature")
+		})
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		tokenParser.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
+			return nil, fmt.Errorf("invalid token") // what matters here is that the manager *does* return an error
+		}
+		t.Run("invalid token", func(t *testing.T) {
+			// when/then
+			ctx, err := createValidContext("user_beta_level")
+			require.NoError(t, err)
+			test.ShowFeaturesUnauthorized(t, ctx, svc, ctrl, releasedFeature.Name)
+		})
+	})
 }
 
 func TestListFeatures(t *testing.T) {
 
 	// given
-	r := newRecorder(t, "../test/data/controller/auth_get_user")
+	r, err := recorder.New("../test/data/controller/auth_get_user", recorder.WithMatcher(JWTMatcher()))
+	require.NoError(t, err)
 	defer r.Stop()
-	svc, ctrl := NewFeaturesController(&http.Client{Transport: r.Transport}, &MockTogglesClient{})
+	tm := NewParserMock(t)
+	svc, ctrl := NewFeaturesController(tm, &http.Client{Transport: r.Transport}, &MockTogglesClient{})
+	tm.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
+		return nil, nil // what matters here is that the manager does not return an error
+	}
 
 	t.Run("ok", func(t *testing.T) {
 		t.Run("2 matches", func(t *testing.T) {
 			// when
-			userID := "user_beta_level"
-			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, &userID), svc, ctrl, []string{disabledFeature.Name, multiStrategiesFeature.Name})
+			ctx, err := createValidContext("user_beta_level")
+			require.NoError(t, err)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{disabledFeature.Name, multiStrategiesFeature.Name})
 			// then
 			experimentalLevel := featuretoggles.BetaLevel
 			expectedData := []*app.Feature{
@@ -375,8 +409,9 @@ func TestListFeatures(t *testing.T) {
 
 		t.Run("no feature found", func(t *testing.T) {
 			// when
-			userID := "user_beta_level"
-			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, &userID), svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
+			ctx, err := createValidContext("user_beta_level")
+			require.NoError(t, err)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
 			// then
 			expectedData := []*app.Feature{}
 			assert.Equal(t, expectedData, featuresList.Data)
@@ -384,14 +419,18 @@ func TestListFeatures(t *testing.T) {
 
 		t.Run("no user provided", func(t *testing.T) {
 			// when
-			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, nil), svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
+			ctx, err := createValidContext("")
+			require.NoError(t, err)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
 			// then
 			expectedData := []*app.Feature{}
 			assert.Equal(t, expectedData, featuresList.Data)
 		})
 		t.Run("no user provided only released features matches", func(t *testing.T) {
 			// when
-			_, featuresList := test.ListFeaturesOK(t, createValidContext(t, nil), svc, ctrl, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name})
+			ctx, err := createValidContext("")
+			require.NoError(t, err)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name})
 			// then
 			releasedLevel := featuretoggles.ReleasedLevel
 			betaLevel := featuretoggles.BetaLevel
@@ -431,16 +470,29 @@ func TestListFeatures(t *testing.T) {
 		})
 	})
 
+	t.Run("invalid", func(t *testing.T) {
+		tm.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
+			return nil, fmt.Errorf("invalid token") // what matters here is that the manager *does* return an error
+		}
+		t.Run("invalid token", func(t *testing.T) {
+			// when/then
+			ctx, err := createValidContext("user_beta_level")
+			require.NoError(t, err)
+			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
+		})
+	})
+
 }
 
 func JWTMatcher() cassette.Matcher {
 	return func(httpRequest *http.Request, cassetteRequest cassette.Request) bool {
 		// look-up the JWT's "sub" claim and compare with the request
 		token, err := jwtrequest.ParseFromRequest(httpRequest, jwtrequest.AuthorizationHeaderExtractor, func(*jwt.Token) (interface{}, error) {
-			return PublicKey()
+			return testsupport.PublicKey("../test/public_key.pem")
 		})
 		if err != nil {
-			log.Panic(nil, map[string]interface{}{"error": err.Error()}, "failed to parse token from request")
+			log.Error(nil, map[string]interface{}{"error": err.Error()}, "failed to parse token from request")
+			return false
 		}
 		claims := token.Claims.(jwt.MapClaims)
 		if sub, found := cassetteRequest.Headers["sub"]; found {
@@ -450,46 +502,22 @@ func JWTMatcher() cassette.Matcher {
 	}
 }
 
-func createValidContext(t *testing.T, userID *string) context.Context {
+func createValidContext(userID string) (context.Context, error) {
 	claims := jwt.MapClaims{}
 	var token *jwt.Token = nil
-	if userID != nil {
-		claims["sub"] = *userID
+	if userID != "" {
+		claims["sub"] = userID
 		token = jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
 		// use the test private key to sign the token
-		key, err := PrivateKey()
-		require.NoError(t, err)
+		key, err := testsupport.PrivateKey("../test/private_key.pem")
+		if err != nil {
+			return nil, err
+		}
 		signed, err := token.SignedString(key)
-		require.NoError(t, err)
+		if err != nil {
+			return nil, err
+		}
 		token.Raw = signed
 	}
-	return goajwt.WithJWT(context.Background(), token)
-}
-
-func newRecorder(t *testing.T, cassetteName string) *recorder.Recorder {
-	_, err := os.Stat(fmt.Sprintf("%s.yaml", cassetteName))
-	require.NoError(t, err)
-	r, err := recorder.New(cassetteName)
-	require.NoError(t, err)
-	_, err = PublicKey()
-	require.NoError(t, err)
-	// custom cassette matcher that will compare the HTTP requests' token subject with the `sub` header of the recorded data (the yaml file)
-	r.SetMatcher(JWTMatcher())
-	return r
-}
-
-func PrivateKey() (*rsa.PrivateKey, error) {
-	rsaPrivateKey, err := ioutil.ReadFile("../test/private_key.pem")
-	if err != nil {
-		return nil, err
-	}
-	return jwt.ParseRSAPrivateKeyFromPEM(rsaPrivateKey)
-}
-
-func PublicKey() (*rsa.PublicKey, error) {
-	rsaPublicKey, err := ioutil.ReadFile("../test/public_key.pem")
-	if err != nil {
-		return nil, err
-	}
-	return jwt.ParseRSAPublicKeyFromPEM(rsaPublicKey)
+	return goajwt.WithJWT(context.Background(), token), nil
 }
