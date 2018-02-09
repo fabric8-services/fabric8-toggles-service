@@ -95,3 +95,7 @@ minishift/f8toggles
 
 tools.timestamp
 .fabric8
+
+# go files generated with minimock
+**/*_mock_test.go
+**/*_mock.go

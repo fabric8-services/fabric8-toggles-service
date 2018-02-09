@@ -143,7 +143,8 @@ $(MINIMOCK_BIN):
 .PHONY: generate-minimock
 generate-minimock: deps $(MINIMOCK_BIN) ## Generate Minimock sources. Only necessary after clean or if changes occurred in interfaces.
 	@echo "Generating mocks..."
-	@$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-toggles-service/vendor/github.com/fabric8-services/fabric8-auth/token.Parser -o ./controller -p controller_test
+	@-mkdir -p test/token
+	@$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-toggles-service/vendor/github.com/fabric8-services/fabric8-auth/token.Parser -o ./test/token/parser_mock.go -t ParserMock
 
 .PHONY: run
 run: build ## Run fabric8-toggles-service.

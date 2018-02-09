@@ -19,6 +19,7 @@ import (
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 	testsupport "github.com/fabric8-services/fabric8-toggles-service/test"
 	"github.com/fabric8-services/fabric8-toggles-service/test/recorder"
+	testtoken "github.com/fabric8-services/fabric8-toggles-service/test/token"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/assert"
@@ -170,7 +171,7 @@ func TestShowFeatures(t *testing.T) {
 	r, err := recorder.New("../test/data/controller/auth_get_user", recorder.WithMatcher(JWTMatcher()))
 	require.NoError(t, err)
 	defer r.Stop()
-	tokenParser := NewParserMock(t)
+	tokenParser := testtoken.NewParserMock(t)
 	tokenParser.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
 		return nil, nil // what matters here is that the manager *does not* return an error
 	}
@@ -368,7 +369,7 @@ func TestListFeatures(t *testing.T) {
 	r, err := recorder.New("../test/data/controller/auth_get_user", recorder.WithMatcher(JWTMatcher()))
 	require.NoError(t, err)
 	defer r.Stop()
-	tm := NewParserMock(t)
+	tm := testtoken.NewParserMock(t)
 	svc, ctrl := NewFeaturesController(tm, &http.Client{Transport: r.Transport}, &MockTogglesClient{})
 	tm.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
 		return nil, nil // what matters here is that the manager does not return an error
