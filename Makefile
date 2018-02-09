@@ -17,7 +17,8 @@ BUILD_DIR = bin
 F8_AUTH_URL ?= https://auth.prod-preview.openshift.io
 F8_TOGGLES_URL ?= "http://toggles:4242/api"
 F8_KEYCLOAK_URL ?= "https://sso.prod-preview.openshift.io"
-fabric8=fabric8
+FABRIC8_MARKER=.fabric8
+FABRIC8_PROJECT=fabric8
 
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
@@ -160,14 +161,15 @@ minishift-registry-login:
 	@echo "Login to minishift registry..."
 	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry)
 
-$(fabric8):
-	oc new-project fabric8
-	touch $@
+## the '-' at the beginning of the line will ignore failure of `oc project` if the project already exists.
+$(FABRIC8_MARKER):
+	@-oc new-project ${FABRIC8_PROJECT} 2>/dev/null
+	@touch $@
 
 .PHONY: push-minishift
-push-minishift: minishift-login minishift-registry-login image $(fabric8)
-	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
-	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker push $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
+push-minishift: minishift-login minishift-registry-login image $(FABRIC8_MARKER)
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${FABRIC8_PROJECT}/${REGISTRY_IMAGE}:latest
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker push $(shell minishift openshift registry)/${FABRIC8_PROJECT}/${REGISTRY_IMAGE}:latest
 
 .PHONY: deploy-minishift
 deploy-minishift: push-minishift ## deploy toggles server on minishift
@@ -177,7 +179,7 @@ deploy-minishift: push-minishift ## deploy toggles server on minishift
 
 .PHONY: clean-minishift
 clean-minishift: minishift-login ## removes the fabric8 project on Minishift
-	oc project fabric8 && oc delete project fabric8 && rm -rf $(fabric8)
+	oc project fabric8 && oc delete project fabric8 && rm -rf $(FABRIC8_MARKER)
 
 
 # For the global "clean" target all targets in this variable will be executed
