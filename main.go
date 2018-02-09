@@ -1,17 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
-
-	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 
 	authmiddleware "github.com/fabric8-services/fabric8-auth/goamiddleware"
 	"github.com/fabric8-services/fabric8-auth/log"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
+	"github.com/fabric8-services/fabric8-toggles-service/auth"
 	"github.com/fabric8-services/fabric8-toggles-service/configuration"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
-	"github.com/fabric8-services/fabric8-toggles-service/errorhandler"
+	"github.com/fabric8-services/fabric8-toggles-service/jsonapi"
 	"github.com/fabric8-services/fabric8-toggles-service/token"
 	"github.com/goadesign/goa"
 	goalogrus "github.com/goadesign/goa/logging/logrus"
@@ -43,31 +43,29 @@ func main() {
 	// Mount middleware
 	service.Use(middleware.RequestID())
 	service.Use(gzip.Middleware(9))
-	service.Use(errorhandler.ErrorHandler(service, true))
+	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
-	tokenManager, err := token.NewManager(config)
+	c, err := auth.NewClient(context.Background(), config.GetAuthServiceURL())
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to initialize auth service client")
+	}
+	tokenParser, err := token.NewParser(c)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to create token manager")
 	}
 	// Middleware that extracts and stores the token in the context
-	jwtMiddlewareTokenContext := authmiddleware.TokenContext(tokenManager.PublicKeys(), nil, app.NewJWTSecurity())
+	jwtMiddlewareTokenContext := authmiddleware.TokenContext(tokenParser, app.NewJWTSecurity())
 	service.Use(jwtMiddlewareTokenContext)
-	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
+	app.UseJWTMiddleware(service, goajwt.New(tokenParser.PublicKeys(), nil, app.NewJWTSecurity()))
 	service.Use(log.LogRequest(config.IsDeveloperModeEnabled()))
 
-	// init the toggle client
-	toggleClient, err := featuretoggles.NewDefaultClient("fabric8-toggle-service", config)
-	if err != nil {
-		log.Panic(nil, map[string]interface{}{
-			"err": err,
-		}, "failed to create toogle client")
-	}
-
 	// Mount "features" controller
-	featuresCtrl := controller.NewFeaturesController(service, toggleClient, http.DefaultClient, config)
+	featuresCtrl := controller.NewFeaturesController(service, tokenParser, config)
 	app.MountFeaturesController(service, featuresCtrl)
 
 	// Mount "status" controller

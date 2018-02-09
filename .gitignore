@@ -84,6 +84,7 @@ migration/sqlbindata.go
 migration/sqlbindata_test.go
 account/tenant
 auth/authservice
+auth/client
 
 # Ignore artifacts directory
 bin/
@@ -93,4 +94,8 @@ bin/
 minishift/f8toggles
 
 tools.timestamp
-fabric8
+.fabric8
+
+# go files generated with minimock
+**/*_mock_test.go
+**/*_mock.go

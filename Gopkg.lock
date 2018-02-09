@@ -74,7 +74,16 @@
     "rest",
     "token"
   ]
-  revision = "9f46f80981102c5e467aa94e007869e851ef7777"
+  revision = "40219482fe0628ab9aa03eaa4484bc90b6da5216"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/fabric8-services/fabric8-wit"
+  packages = [
+    "errors",
+    "rest"
+  ]
+  revision = "ebdb606caaf97abcc61145bd5fb1bea03d88facf"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -112,6 +121,21 @@
   ]
   revision = "5646a430cdeb66983d5ace3384e0a667c185abc7"
   version = "v1.3.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gojuno/generator"
+  packages = ["."]
+  revision = "2224a98ac05213f8dff340ea2a489217d2d8b965"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gojuno/minimock"
+  packages = [
+    ".",
+    "cmd/minimock"
+  ]
+  revision = "a59b65f9f28df1a7bc958c5ff63c28d714010132"
 
 [[projects]]
   branch = "master"
@@ -290,7 +314,12 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/tools"
-  packages = ["go/ast/astutil"]
+  packages = [
+    "go/ast/astutil",
+    "go/buildutil",
+    "go/loader",
+    "imports"
+  ]
   revision = "25101aadb97aa42907eee6a238d6d26a6cb3c756"
 
 [[projects]]
@@ -312,6 +341,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "60afba46eada3d4bc4590827f4ac473326a91dbb36f041549729b450c8c6447d"
+  inputs-digest = "565f663566329da64e561b3d258e10e49bf2c2e31e647498fd93a77d0d0144b3"
   solver-name = "gps-cdcl"
   solver-version = 1

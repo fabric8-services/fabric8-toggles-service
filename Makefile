@@ -11,12 +11,14 @@ LDFLAGS := -w
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/$(VENDOR_DIR) -prune -o -name '*.go' -print)
 GOAGEN_BIN=$(VENDOR_DIR)/github.com/goadesign/goa/goagen/goagen
+MINIMOCK_BIN=$(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock/minimock
 CUR_DIR=$(shell pwd)
 BUILD_DIR = bin
 F8_AUTH_URL ?= https://auth.prod-preview.openshift.io
 F8_TOGGLES_URL ?= "http://toggles:4242/api"
 F8_KEYCLOAK_URL ?= "https://sso.prod-preview.openshift.io"
-fabric8=fabric8
+FABRIC8_MARKER=.fabric8
+FABRIC8_PROJECT=fabric8
 
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
@@ -56,15 +58,15 @@ $(BUILD_DIR):
 
 .PHONY: build
 build: deps generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
-	go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(REGISTRY_IMAGE)
+	go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(PROJECT_NAME)
 
 .PHONY: build-linux
 build-linux: deps generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(REGISTRY_IMAGE)
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(PROJECT_NAME)
 
 image: clean-artifacts build-linux ## Builds the container image using the binary compiled for Linux
 	docker build -t $(REGISTRY_URL) \
-	  --build-arg BINARY=$(BUILD_DIR)/$(REGISTRY_IMAGE) \
+	  --build-arg BINARY=$(BUILD_DIR)/$(PROJECT_NAME) \
 	  -f Dockerfile .
 
 push-openshift: image ## Pushes the container image to the OpenShift online registry
@@ -83,6 +85,7 @@ tools.timestamp:
 deps: tools.timestamp $(VENDOR_DIR) ## Runs dep to vendor project dependencies
 
 $(VENDOR_DIR):
+	@echo "checking dependencies..."
 	$(GOPATH)/bin/dep ensure -v 
 
 
@@ -119,19 +122,33 @@ lint: ## Runs golint
 		exit 1; \
 	fi
 
-$(GOAGEN_BIN): deps
-	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
-
 .PHONY: generate
-generate: $(DESIGNS) $(GOAGEN_BIN) deps ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
+generate: generate-goa generate-minimock ## Generate GOA and Minimock sources.
+
+$(GOAGEN_BIN):
+	@echo "building the goagen binary..."
+	@cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
+
+.PHONY: generate-goa
+generate-goa: deps $(DESIGNS) $(GOAGEN_BIN) deps ## Generate GOA sources. Only necessary after clean or if changes occurred in `design` folder.
 	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) controller -d ${PACKAGE_NAME}/${DESIGN_DIR} -o controller/ --pkg controller --app-pkg app
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
-	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg authservice -o auth
+	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg client -o auth
+
+$(MINIMOCK_BIN): 
+	@echo "building the minimock binary..."
+	@cd $(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock && go build -v minimock.go
+
+.PHONY: generate-minimock
+generate-minimock: deps $(MINIMOCK_BIN) ## Generate Minimock sources. Only necessary after clean or if changes occurred in interfaces.
+	@echo "Generating mocks..."
+	@-mkdir -p test/token
+	@$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-toggles-service/vendor/github.com/fabric8-services/fabric8-auth/token.Parser -o ./test/token/parser_mock.go -t ParserMock
 
 .PHONY: run
 run: build ## Run fabric8-toggles-service.
-	$(BUILD_DIR)/$(REGISTRY_IMAGE) --config config.yaml
+	$(BUILD_DIR)/$(PROJECT_NAME) --config config.yaml
 
 .PHONY: minishift-login
 ## login to oc minishift
@@ -145,14 +162,15 @@ minishift-registry-login:
 	@echo "Login to minishift registry..."
 	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry)
 
-$(fabric8):
-	oc new-project fabric8
-	touch $@
+## the '-' at the beginning of the line will ignore failure of `oc project` if the project already exists.
+$(FABRIC8_MARKER):
+	@-oc new-project ${FABRIC8_PROJECT} 2>/dev/null
+	@touch $@
 
 .PHONY: push-minishift
-push-minishift: minishift-login minishift-registry-login image $(fabric8)
-	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
-	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker push $(shell minishift openshift registry)/${fabric8}/${REGISTRY_IMAGE}:latest
+push-minishift: minishift-login minishift-registry-login image $(FABRIC8_MARKER)
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${FABRIC8_PROJECT}/${REGISTRY_IMAGE}:latest
+	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker push $(shell minishift openshift registry)/${FABRIC8_PROJECT}/${REGISTRY_IMAGE}:latest
 
 .PHONY: deploy-minishift
 deploy-minishift: push-minishift ## deploy toggles server on minishift
@@ -162,7 +180,7 @@ deploy-minishift: push-minishift ## deploy toggles server on minishift
 
 .PHONY: clean-minishift
 clean-minishift: minishift-login ## removes the fabric8 project on Minishift
-	oc project fabric8 && oc delete project fabric8 && rm -rf $(fabric8)
+	oc project fabric8 && oc delete project fabric8 && rm -rf $(FABRIC8_MARKER)
 
 
 # For the global "clean" target all targets in this variable will be executed
@@ -178,10 +196,8 @@ CLEAN_TARGETS += clean-generated
 .PHONY: clean-generated 
 clean-generated: ## Removes all generated code.
 	-rm -rf ./app
-	-rm -rf ./client/
 	-rm -rf ./swagger/
-	-rm -rf ./tool/cli/
-	-rm -rf ./auth
+	-rm -rf ./auth/client
 
 CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts 
