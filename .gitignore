@@ -99,3 +99,6 @@ tools.timestamp
 # go files generated with minimock
 **/*_mock_test.go
 **/*_mock.go
+
+# kedge files downloaded for the `fabric8-minishift repo`
+minishift/*.yml

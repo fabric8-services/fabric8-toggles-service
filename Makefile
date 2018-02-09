@@ -174,8 +174,11 @@ push-minishift: minishift-login minishift-registry-login image $(FABRIC8_MARKER)
 
 .PHONY: deploy-minishift
 deploy-minishift: push-minishift ## deploy toggles server on minishift
+	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-db.yml -o ./minishift/toggles-db.yml
 	kedge apply -f ./minishift/toggles-db.yml
+	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles.yml -o ./minishift/toggles.yml
 	kedge apply -f ./minishift/toggles.yml
+	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-service.yml -o ./minishift/toggles-service.yml
 	F8_AUTH_URL=$(F8_AUTH_URL) F8_KEYCLOAK_URL=$(F8_KEYCLOAK_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f ./minishift/toggles-service.yml
 
 .PHONY: clean-minishift

@@ -123,6 +123,11 @@ Run the commands:
 ```
 # back to minishift directory
 cd minishift/
+# d/l the kedge manifests
+curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-db.yml
+curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles.yml
+curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-service.yml
+
 # export env variables
 export F8_AUTH_URL=https://auth.prod-preview.openshift.io
 export F8_TOGGLES_URL=http://toggles:4242/api
