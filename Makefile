@@ -64,8 +64,13 @@ build: deps generate $(BUILD_DIR) # Builds the Linux binary for the container im
 build-linux: deps generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(PROJECT_NAME)
 
-image: clean-artifacts build-linux ## Builds the container image using the binary compiled for Linux
+image: clean-artifacts build-linux
 	docker build -t $(REGISTRY_URL) \
+	  --build-arg BINARY=$(BUILD_DIR)/$(PROJECT_NAME) \
+	  -f Dockerfile .
+
+image-minishift: clean-artifacts build-linux
+	@eval $$(minishift docker-env) && docker build -t $(REGISTRY_URL) \
 	  --build-arg BINARY=$(BUILD_DIR)/$(PROJECT_NAME) \
 	  -f Dockerfile .
 
@@ -168,19 +173,23 @@ $(FABRIC8_MARKER):
 	@touch $@
 
 .PHONY: push-minishift
-push-minishift: minishift-login minishift-registry-login image $(FABRIC8_MARKER)
-	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${FABRIC8_PROJECT}/${REGISTRY_IMAGE}:latest
-	@eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker push $(shell minishift openshift registry)/${FABRIC8_PROJECT}/${REGISTRY_IMAGE}:latest
+push-minishift: minishift-login minishift-registry-login image-minishift $(FABRIC8_MARKER)
+	eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker tag ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}  $(shell minishift openshift registry)/${FABRIC8_PROJECT}/${REGISTRY_IMAGE}:latest
+	eval $$(minishift docker-env) && docker login -u developer -p $(shell oc whoami -t) $(shell minishift openshift registry) && docker push $(shell minishift openshift registry)/${FABRIC8_PROJECT}/${REGISTRY_IMAGE}:latest
 
 .PHONY: deploy-minishift
 deploy-minishift: push-minishift ## deploy toggles server on minishift
+	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-db.yml -o ./minishift/toggles-db.yml
 	kedge apply -f ./minishift/toggles-db.yml
+	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles.yml -o ./minishift/toggles.yml
 	kedge apply -f ./minishift/toggles.yml
+	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-service.yml -o ./minishift/toggles-service.yml
 	F8_AUTH_URL=$(F8_AUTH_URL) F8_KEYCLOAK_URL=$(F8_KEYCLOAK_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f ./minishift/toggles-service.yml
 
 .PHONY: clean-minishift
 clean-minishift: minishift-login ## removes the fabric8 project on Minishift
-	oc project fabric8 && oc delete project fabric8 && rm -rf $(FABRIC8_MARKER)
+	rm -rf $(FABRIC8_MARKER)
+	oc project fabric8 && oc delete project fabric8
 
 
 # For the global "clean" target all targets in this variable will be executed
