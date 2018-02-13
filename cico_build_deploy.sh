@@ -61,6 +61,8 @@ cd $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
 echo "HEAD of repository `git rev-parse --short HEAD`"
 make all
 
+bash <(curl -s https://codecov.io/bash) -f coverage.txt -t cbdff99f-9158-4128-8dec-ef6afb6d78ab
+
 if [[ "$JOB_NAME" = "devtools-fabric8-toggles-service-build-master" ]]; then
     TAG=$(echo ${GIT_COMMIT} | cut -c1-${DEVSHIFT_TAG_LEN})
     make push-openshift REGISTRY_USER=${DEVSHIFT_USERNAME} REGISTRY_PASSWORD=${DEVSHIFT_PASSWORD} IMAGE_TAG=${TAG}
