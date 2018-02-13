@@ -51,7 +51,7 @@ __check_defined = \
     $(if $(value $1),, \
       $(error Undefined $1$(if $2, ($2))))
 
-all: tools.timestamp generate fmtcheck test image ## Compiles binary and runs format and style checks
+all: tools.timestamp generate fmtcheck test-coverage image ## Compiles binary and runs format and style checks
 
 $(BUILD_DIR): 
 	mkdir $(BUILD_DIR)
@@ -95,10 +95,25 @@ $(VENDOR_DIR):
 
 
 .PHONY: test
-test: deps ## Runs unit tests
+test: deps ## Runs unit tests without code coverage
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	go test -v $(TEST_PACKAGES)
 
+.PHONY: test-coverage
+test-coverage: deps tmp ## Runs unit tests with coverage support
+	@-rm -f coverage.txt
+	@echo "running tests with code coverage"
+	@for d in `go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)`; do \
+		echo "running tests with code coverage in pkg $$d" ; \
+		go test -coverprofile=./tmp/profile.out -covermode=atomic $$d ; \
+		if [ -e ./tmp/profile.out ]; \
+			then \
+			cat ./tmp/profile.out >> coverage.txt && rm ./tmp/profile.out ; \
+		fi \
+	done
+
+tmp:
+	@mkdir tmp
 
 .PHONY: fmtcheck
 fmtcheck: ## Runs gofmt and returns error in case of violations
