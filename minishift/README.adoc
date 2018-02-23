@@ -131,7 +131,6 @@ curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-
 # export env variables
 export F8_AUTH_URL=https://auth.prod-preview.openshift.io
 export F8_TOGGLES_URL=http://toggles:4242/api
-export F8_KEYCLOAK_URL=https://sso.prod-preview.openshift.io
 # deployment configuration, service for toggles-service.
 kedge apply -f toggles-service.yml
 # create route to access

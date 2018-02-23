@@ -26,11 +26,6 @@ objects:
               configMapKeyRef:
                 name: f8toggles-service
                 key: auth.url
-          - name: F8_KEYCLOAK_URL
-            valueFrom:
-              configMapKeyRef:
-                name: f8toggles-service
-                key: keycloak.url
           - name: F8_TOGGLES_URL
             valueFrom:
               configMapKeyRef:

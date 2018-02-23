@@ -16,7 +16,6 @@ CUR_DIR=$(shell pwd)
 BUILD_DIR = bin
 F8_AUTH_URL ?= https://auth.prod-preview.openshift.io
 F8_TOGGLES_URL ?= "http://toggles:4242/api"
-F8_KEYCLOAK_URL ?= "https://sso.prod-preview.openshift.io"
 FABRIC8_MARKER=.fabric8
 FABRIC8_PROJECT=fabric8
 
@@ -199,7 +198,7 @@ deploy-minishift: push-minishift ## deploy toggles server on minishift
 	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles.yml -o ./minishift/toggles.yml
 	kedge apply -f ./minishift/toggles.yml
 	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-service.yml -o ./minishift/toggles-service.yml
-	F8_AUTH_URL=$(F8_AUTH_URL) F8_KEYCLOAK_URL=$(F8_KEYCLOAK_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f ./minishift/toggles-service.yml
+	F8_AUTH_URL=$(F8_AUTH_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f ./minishift/toggles-service.yml
 
 .PHONY: clean-minishift
 clean-minishift: minishift-login ## removes the fabric8 project on Minishift
