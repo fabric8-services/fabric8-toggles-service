@@ -86,7 +86,7 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 	if jwtToken != nil {
 		_, err := c.tokenParser.Parse(ctx, jwtToken.Raw)
 		if err != nil {
-			log.Error(ctx, map[string]interface{}{"error": err.Error()}, "Error while checking the JWT")
+			log.Error(ctx, map[string]interface{}{"error": err.Error()}, "error while parsing the user's token")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("invalid token"))
 		}
 		if user, err = c.getUserProfile(ctx); err != nil {
@@ -107,7 +107,7 @@ func (c *FeaturesController) Show(ctx *app.ShowFeaturesContext) error {
 	if jwtToken != nil {
 		_, err := c.tokenParser.Parse(ctx, jwtToken.Raw)
 		if err != nil {
-			log.Error(ctx, map[string]interface{}{"error": err.Error()}, "Error while checking the JWT")
+			log.Error(ctx, map[string]interface{}{"error": err.Error()}, "error while parsing the user's token")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("invalid token"))
 		}
 		if user, err = c.getUserProfile(ctx); err != nil {

@@ -71,7 +71,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-auth"
-  revision = "40219482fe0628ab9aa03eaa4484bc90b6da5216"
+  revision = "f49fbf645355af271893af5d54ac1abbcdaf378f"
 
 [[constraint]]
   name = "github.com/gojuno/minimock"
