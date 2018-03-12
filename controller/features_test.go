@@ -2,24 +2,25 @@ package controller_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
+	"time"
 
 	unleashapi "github.com/Unleash/unleash-client-go/api"
 	jwt "github.com/dgrijalva/jwt-go"
 	jwtrequest "github.com/dgrijalva/jwt-go/request"
 	"github.com/dnaeon/go-vcr/cassette"
 	"github.com/fabric8-services/fabric8-auth/log"
-	"github.com/fabric8-services/fabric8-auth/token"
+	authtoken "github.com/fabric8-services/fabric8-auth/token"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/app/test"
+	"github.com/fabric8-services/fabric8-toggles-service/auth"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 	testsupport "github.com/fabric8-services/fabric8-toggles-service/test"
 	"github.com/fabric8-services/fabric8-toggles-service/test/recorder"
-	testtoken "github.com/fabric8-services/fabric8-toggles-service/test/token"
+	"github.com/fabric8-services/fabric8-toggles-service/token"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/assert"
@@ -153,7 +154,7 @@ func (c *TestFeatureControllerConfig) GetTogglesURL() string {
 	return ""
 }
 
-func NewFeaturesController(tokenParser token.Parser, httpClient *http.Client, togglesClient featuretoggles.Client) (*goa.Service, *controller.FeaturesController) {
+func NewFeaturesController(tokenParser authtoken.Parser, httpClient *http.Client, togglesClient featuretoggles.Client) (*goa.Service, *controller.FeaturesController) {
 	svc := goa.New("feature")
 	ctrl := controller.NewFeaturesController(svc,
 		tokenParser,
@@ -168,20 +169,29 @@ func NewFeaturesController(tokenParser token.Parser, httpClient *http.Client, to
 
 func TestShowFeatures(t *testing.T) {
 	// given
-	r, err := recorder.New("../test/data/controller/auth_get_user", recorder.WithMatcher(JWTMatcher()))
+	r1, err := recorder.New("../test/data/controller/auth_get_user", recorder.WithMatcher(JWTMatcher()))
 	require.NoError(t, err)
-	defer r.Stop()
-	tokenParser := testtoken.NewParserMock(t)
-	tokenParser.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
-		return nil, nil // what matters here is that the manager *does not* return an error
-	}
-	svc, ctrl := NewFeaturesController(tokenParser, &http.Client{Transport: r.Transport}, &MockTogglesClient{})
+	defer r1.Stop()
+	r2, err := recorder.New("../test/data/token/auth_get_keys")
+	require.NoError(t, err)
+	c, err := auth.NewClient(
+		context.Background(),
+		"http://authservice",
+		auth.WithHTTPClient(
+			&http.Client{
+				Transport: r2.Transport,
+			}),
+	)
+	require.NoError(t, err)
+	p, err := token.NewParser(c)
+	require.NoError(t, err)
+	svc, ctrl := NewFeaturesController(p, &http.Client{Transport: r1.Transport}, &MockTogglesClient{})
 
 	t.Run("disabled for user", func(t *testing.T) {
 
 		t.Run("disabled for all", func(t *testing.T) {
 			// when
-			ctx, err := createValidContext("user_beta_level")
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, disabledFeature.Name)
 			// then
@@ -201,7 +211,7 @@ func TestShowFeatures(t *testing.T) {
 
 		t.Run("user with no level", func(t *testing.T) {
 			// when
-			ctx, err := createValidContext("user_no_level")
+			ctx, err := createValidContext("../test/private_key.pem", "user_no_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, singleStrategyFeature.Name)
 			// then
@@ -228,9 +238,10 @@ func TestShowFeatures(t *testing.T) {
 			t.Run("user with enough level", func(t *testing.T) {
 
 				t.Run("experimental user", func(t *testing.T) {
-					// when
-					ctx, err := createValidContext("user_experimental_level")
+					// given
+					ctx, err := createValidContext("../test/private_key.pem", "user_experimental_level", time.Now().Add(1*time.Hour))
 					require.NoError(t, err)
+					// when
 					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, multiStrategiesFeature.Name)
 					// then
 					require.NotNil(t, appFeature)
@@ -253,9 +264,10 @@ func TestShowFeatures(t *testing.T) {
 		t.Run("released feature", func(t *testing.T) {
 
 			t.Run("user with no level", func(t *testing.T) {
-				// when
-				ctx, err := createValidContext("user_no_level")
+				// given
+				ctx, err := createValidContext("../test/private_key.pem", "user_no_level", time.Now().Add(1*time.Hour))
 				require.NoError(t, err)
+				// when
 				_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
 				// then
 				require.NotNil(t, appFeature)
@@ -276,9 +288,10 @@ func TestShowFeatures(t *testing.T) {
 			t.Run("user with enough level", func(t *testing.T) {
 
 				t.Run("experimental level", func(t *testing.T) {
-					// when
-					ctx, err := createValidContext("user_experimental_level")
+					// given
+					ctx, err := createValidContext("../test/private_key.pem", "user_experimental_level", time.Now().Add(1*time.Hour))
 					require.NoError(t, err)
+					// when
 					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
 					// then
 					require.NotNil(t, appFeature)
@@ -297,9 +310,10 @@ func TestShowFeatures(t *testing.T) {
 				})
 
 				t.Run("released level", func(t *testing.T) {
-					// when
-					ctx, err := createValidContext("user_released_level")
+					// given
+					ctx, err := createValidContext("../test/private_key.pem", "user_released_level", time.Now().Add(1*time.Hour))
 					require.NoError(t, err)
+					// when
 					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
 					// then
 					require.NotNil(t, appFeature)
@@ -318,9 +332,10 @@ func TestShowFeatures(t *testing.T) {
 				})
 
 				t.Run("nopreproduction level", func(t *testing.T) {
-					// when
-					ctx, err := createValidContext("user_nopreproduction_level")
+					// given
+					ctx, err := createValidContext("../test/private_key.pem", "user_nopreproduction_level", time.Now().Add(1*time.Hour))
 					require.NoError(t, err)
+					// when
 					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
 					// then
 					require.NotNil(t, appFeature)
@@ -343,42 +358,58 @@ func TestShowFeatures(t *testing.T) {
 
 	t.Run("fail", func(t *testing.T) {
 		t.Run("not found", func(t *testing.T) {
-			// when/then
-			ctx, err := createValidContext("user_beta_level")
+			// given
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
+			// when/then
 			test.ShowFeaturesNotFound(t, ctx, svc, ctrl, "UnknownFeature")
 		})
 	})
 
 	t.Run("invalid", func(t *testing.T) {
-		tokenParser.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
-			return nil, fmt.Errorf("invalid token") // what matters here is that the manager *does* return an error
-		}
+
 		t.Run("invalid token", func(t *testing.T) {
-			// when/then
-			ctx, err := createValidContext("user_beta_level")
+			// given
+			ctx, err := createValidContext("../test/private_key2.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
+			// when/then
+			test.ShowFeaturesUnauthorized(t, ctx, svc, ctrl, releasedFeature.Name)
+		})
+
+		t.Run("expired token", func(t *testing.T) {
+			// given
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(-1*time.Hour))
+			require.NoError(t, err)
+			// when/then
 			test.ShowFeaturesUnauthorized(t, ctx, svc, ctrl, releasedFeature.Name)
 		})
 	})
 }
 
 func TestListFeatures(t *testing.T) {
-
 	// given
-	r, err := recorder.New("../test/data/controller/auth_get_user", recorder.WithMatcher(JWTMatcher()))
+	r1, err := recorder.New("../test/data/controller/auth_get_user", recorder.WithMatcher(JWTMatcher()))
 	require.NoError(t, err)
-	defer r.Stop()
-	tm := testtoken.NewParserMock(t)
-	svc, ctrl := NewFeaturesController(tm, &http.Client{Transport: r.Transport}, &MockTogglesClient{})
-	tm.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
-		return nil, nil // what matters here is that the manager does not return an error
-	}
+	defer r1.Stop()
+	r2, err := recorder.New("../test/data/token/auth_get_keys")
+	require.NoError(t, err)
+	c, err := auth.NewClient(
+		context.Background(),
+		"http://authservice",
+		auth.WithHTTPClient(
+			&http.Client{
+				Transport: r2.Transport,
+			}),
+	)
+	require.NoError(t, err)
+	p, err := token.NewParser(c)
+	require.NoError(t, err)
+	svc, ctrl := NewFeaturesController(p, &http.Client{Transport: r1.Transport}, &MockTogglesClient{})
 
 	t.Run("ok", func(t *testing.T) {
 		t.Run("2 matches", func(t *testing.T) {
 			// when
-			ctx, err := createValidContext("user_beta_level")
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{disabledFeature.Name, multiStrategiesFeature.Name})
 			// then
@@ -410,7 +441,7 @@ func TestListFeatures(t *testing.T) {
 
 		t.Run("no feature found", func(t *testing.T) {
 			// when
-			ctx, err := createValidContext("user_beta_level")
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
 			// then
@@ -420,18 +451,15 @@ func TestListFeatures(t *testing.T) {
 
 		t.Run("no user provided", func(t *testing.T) {
 			// when
-			ctx, err := createValidContext("")
-			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
+			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
 			// then
 			expectedData := []*app.Feature{}
 			assert.Equal(t, expectedData, featuresList.Data)
 		})
+
 		t.Run("no user provided only released features matches", func(t *testing.T) {
 			// when
-			ctx, err := createValidContext("")
-			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name})
+			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name})
 			// then
 			releasedLevel := featuretoggles.ReleasedLevel
 			betaLevel := featuretoggles.BetaLevel
@@ -472,23 +500,43 @@ func TestListFeatures(t *testing.T) {
 	})
 
 	t.Run("invalid", func(t *testing.T) {
-		tm.ParseFunc = func(ctx context.Context, token string) (*jwt.Token, error) {
-			return nil, fmt.Errorf("invalid token") // what matters here is that the manager *does* return an error
-		}
+
 		t.Run("invalid token", func(t *testing.T) {
-			// when/then
-			ctx, err := createValidContext("user_beta_level")
+			// given
+			ctx, err := createValidContext("../test/private_key2.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
+			// when/then
+			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
+		})
+
+		t.Run("expired token", func(t *testing.T) {
+			// given
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(-1*time.Hour))
+			require.NoError(t, err)
+			// when/then
 			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"})
 		})
 	})
 
 }
 
+// JWTMatcher a cassette matcher that verifies the request method/URL and the subject of the token in the "Authorization" header.
 func JWTMatcher() cassette.Matcher {
 	return func(httpRequest *http.Request, cassetteRequest cassette.Request) bool {
+		// check the request URI and method
+		if httpRequest.Method != cassetteRequest.Method ||
+			(httpRequest.URL != nil && httpRequest.URL.String() != cassetteRequest.URL) {
+			log.Debug(nil, map[string]interface{}{
+				"httpRequest_method":     httpRequest.Method,
+				"cassetteRequest_method": cassetteRequest.Method,
+				"httpRequest_url":        httpRequest.URL,
+				"cassetteRequest_url":    cassetteRequest.URL,
+			}, "Cassette method/url doesn't match with the current request")
+			return false
+		}
+
 		// look-up the JWT's "sub" claim and compare with the request
-		token, err := jwtrequest.ParseFromRequest(httpRequest, jwtrequest.AuthorizationHeaderExtractor, func(*jwt.Token) (interface{}, error) {
+		token, err := parseFromRequest(httpRequest, jwtrequest.AuthorizationHeaderExtractor, func(*jwt.Token) (interface{}, error) {
 			return testsupport.PublicKey("../test/public_key.pem")
 		})
 		if err != nil {
@@ -503,22 +551,35 @@ func JWTMatcher() cassette.Matcher {
 	}
 }
 
-func createValidContext(userID string) (context.Context, error) {
+func parseFromRequest(req *http.Request, extractor jwtrequest.Extractor, keyFunc jwt.Keyfunc) (token *jwt.Token, err error) {
+	// Extract token from request
+	if tokStr, err := extractor.ExtractToken(req); err == nil {
+		p := new(jwt.Parser)
+		p.SkipClaimsValidation = true // skip claims validation here to allow for expired tokens in the tests
+		return p.ParseWithClaims(tokStr, jwt.MapClaims{}, keyFunc)
+	} else {
+		return nil, err
+	}
+}
+
+func createValidContext(filename, userID string, exp time.Time) (context.Context, error) {
 	claims := jwt.MapClaims{}
-	var token *jwt.Token = nil
 	if userID != "" {
 		claims["sub"] = userID
-		token = jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
-		// use the test private key to sign the token
-		key, err := testsupport.PrivateKey("../test/private_key.pem")
-		if err != nil {
-			return nil, err
-		}
-		signed, err := token.SignedString(key)
-		if err != nil {
-			return nil, err
-		}
-		token.Raw = signed
 	}
+	claims["exp"] = exp.Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
+	token.Header["kid"] = "test_key"
+	// use the test private key to sign the token
+	key, err := testsupport.PrivateKey(filename)
+	if err != nil {
+		return nil, err
+	}
+	signed, err := token.SignedString(key)
+	if err != nil {
+		return nil, err
+	}
+	token.Raw = signed
+	log.Debug(nil, map[string]interface{}{"signed_token": token, "subject": userID}, "generated token")
 	return goajwt.WithJWT(context.Background(), token), nil
 }

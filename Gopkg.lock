@@ -74,7 +74,7 @@
     "rest",
     "token"
   ]
-  revision = "40219482fe0628ab9aa03eaa4484bc90b6da5216"
+  revision = "f49fbf645355af271893af5d54ac1abbcdaf378f"
 
 [[projects]]
   branch = "master"
@@ -341,6 +341,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "565f663566329da64e561b3d258e10e49bf2c2e31e647498fd93a77d0d0144b3"
+  inputs-digest = "9d3f657dff97c3c61b9abbf6c827bde7637c1b5c5ed2a522655105baae3e0d01"
   solver-name = "gps-cdcl"
   solver-version = 1

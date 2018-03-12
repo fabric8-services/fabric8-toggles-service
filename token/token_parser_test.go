@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -44,8 +45,8 @@ func TestParseToken(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("valid token", func(t *testing.T) {
-		// given
-		raw, err := generateRawToken("../test/private_key.pem", "foo")
+		// given a token that will expire in 1hr
+		raw, err := generateRawToken("../test/private_key.pem", "foo", time.Now().Add(1*time.Hour))
 		require.NoError(t, err)
 		// when
 		result, err := p.Parse(context.Background(), *raw)
@@ -56,13 +57,26 @@ func TestParseToken(t *testing.T) {
 	})
 
 	t.Run("invalid token", func(t *testing.T) {
-		// given
-		raw, err := generateRawToken("../test/private_key2.pem", "foo")
-		require.NoError(t, err)
-		// when
-		_, err = p.Parse(context.Background(), *raw)
-		// then parsing should fail because the private key used to sign the token as no known/loaded public counterpart
-		require.Error(t, err)
+
+		t.Run("wrong signing key", func(t *testing.T) {
+			// given a token that will expire in 1hr, but signed with another key
+			raw, err := generateRawToken("../test/private_key2.pem", "foo", time.Now().Add(1*time.Hour))
+			require.NoError(t, err)
+			// when
+			_, err = p.Parse(context.Background(), *raw)
+			// then parsing should fail because the private key used to sign the token as no known/loaded public counterpart
+			require.Error(t, err)
+		})
+
+		t.Run("expired token", func(t *testing.T) {
+			// given a token that expired 1 hr ago
+			raw, err := generateRawToken("../test/private_key.pem", "foo", time.Now().Add(-1*time.Hour))
+			require.NoError(t, err)
+			// when
+			_, err = p.Parse(context.Background(), *raw)
+			// then parsing should fail because the private key used to sign the token as no known/loaded public counterpart
+			require.Error(t, err)
+		})
 	})
 }
 
@@ -87,16 +101,17 @@ func TestPublicKeys(t *testing.T) {
 	assert.Len(t, result, 3)
 }
 
-func generateRawToken(filename, subject string) (*string, error) {
+func generateRawToken(filename, subject string, exp time.Time) (*string, error) {
 	claims := jwt.MapClaims{}
 	claims["sub"] = subject
+	claims["exp"] = exp.Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
 	// use the test private key to sign the token
 	key, err := testsupport.PrivateKey(filename)
 	if err != nil {
 		return nil, errs.Wrap(err, "failed to generate token")
 	}
-	token.Header["kid"] = "billythekid"
+	token.Header["kid"] = "test_key"
 	signed, err := token.SignedString(key)
 	if err != nil {
 		return nil, errs.Wrap(err, "failed to generate token")

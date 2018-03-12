@@ -28,11 +28,10 @@ interactions:
         {
           "alg": "RS256",
           "e": "AQAB",
-          "kid": "billythekid",
+          "kid": "test_key",
           "kty": "RSA",
           "n": "DpfS9jJGDXFUqjw5QAKm8M5ciqBDelRrmby5VPaPi7P8tvyS3YBKyLBfAAVOkvoFwSBcz94yuGh2q8tP8LIM8QLbixeaB5OSUC-z9Oq-bRhUlJEtZ1fqaHzwGC0ru6rrd8rEZRij1iaVPsX16Mm12RNpACmjyhr_PEcLeLQA9KVpjTNTUX3n1BhK0VUIrxKSfdxs4MX_5I3WjGPf_-3r2wacxap9OWUVwbuEPfrXAan89cj-fxTWxU57etkR5wdbAkXmSW0u7rLtfKoek9iuTxCn4WjWjdZ8Rxobs_YllW97fk_7FhYG-bsRGxuqKHlpIUnPwLeEqXBJA4RW220",
           "use": "sig"
-
         }
       ]
     }'
