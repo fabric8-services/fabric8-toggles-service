@@ -10,10 +10,7 @@ import (
 )
 
 const (
-	defaultLogLevel      = "info"
-	defaultTogglesURL    = "http://fabric8/api"
-	defaultKeycloakURL   = "https://auth.openshift.io"
-	defaultKeycloakRealm = "fabric8"
+	defaultLogLevel = "info"
 	// DevModeRsaPrivateKey for signing JWT Tokens in Dev Mode
 	// ssh-keygen -f alm_rsa
 	DevModeRsaPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
@@ -48,14 +45,10 @@ OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 const (
 	// Constants for viper variable names. Will be used to set
 	// default values as well as to get each value
-	varHTTPAddress          = "http.address"
-	varDeveloperModeEnabled = "developer.mode.enabled"
-	varTogglesURL           = "toggles.url"
-	varAuthURL              = "auth.url"
-	varKeycloakRealm        = "keycloak.realm"
-	// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
-	devModeKeycloakURL                = "https://sso.prod-preview.openshift.io"
-	devModeKeycloakRealm              = "fabric8-test"
+	varHTTPAddress                    = "http.address"
+	varDeveloperModeEnabled           = "developer.mode.enabled"
+	varTogglesURL                     = "toggles.url"
+	varAuthURL                        = "auth.url"
 	varAPIServerInsecureSkipTLSVerify = "api.server.insecure.skip.tls.verify"
 	varLogLevel                       = "log.level"
 	varLogJSON                        = "log.json"
@@ -69,26 +62,6 @@ type Data struct {
 // GetAuthServiceURL returns the Auth Service URL
 func (c *Data) GetAuthServiceURL() string {
 	return c.v.GetString(varAuthURL)
-}
-
-// GetKeycloakDevModeURL returns Keycloak URL (including realm name) used by default in Dev mode
-// Returns "" if DevMode is not enabled
-func (c *Data) GetKeycloakDevModeURL() string {
-	if c.IsDeveloperModeEnabled() {
-		return fmt.Sprintf("%s/auth/realms/%s", devModeKeycloakURL, c.GetKeycloakRealm())
-	}
-	return ""
-}
-
-// GetKeycloakRealm returns the keycloak realm name
-func (c *Data) GetKeycloakRealm() string {
-	if c.v.IsSet(varKeycloakRealm) {
-		return c.v.GetString(varKeycloakRealm)
-	}
-	if c.IsDeveloperModeEnabled() {
-		return devModeKeycloakRealm
-	}
-	return defaultKeycloakRealm
 }
 
 // NewData creates a configuration reader object using a configurable configuration file path
@@ -136,7 +109,6 @@ func (c *Data) setConfigDefaults() {
 	// Misc
 	//-----
 	c.v.SetDefault(varAPIServerInsecureSkipTLSVerify, false)
-	c.v.SetDefault(varTogglesURL, defaultTogglesURL)
 
 	//-----
 	// Enable development related features, e.g. token generation endpoint
@@ -144,8 +116,6 @@ func (c *Data) setConfigDefaults() {
 	c.v.SetDefault(varDeveloperModeEnabled, false)
 	c.v.SetDefault(varLogLevel, defaultLogLevel)
 
-	// Auth-related defaults
-	c.v.SetDefault(varAuthURL, defaultKeycloakURL)
 }
 
 // GetHTTPAddress returns the HTTP address (as set via default, config file, or environment variable)
