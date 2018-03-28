@@ -115,3 +115,26 @@ interactions:
         "type": "identities"
       }
     }'
+- request:
+    method: GET
+    url: http://auth/api/user
+    headers:
+      sub: ["user_empty_level"] # will be compared against the `sub` claim in the incoming request's token
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      "data": {
+        "attributes": {
+          "bio": "",
+          "cluster": "https://api.starter-us-east-2.openshift.com",
+          "company": "Red Hat",
+          "email": "user@baz.com",
+          "fullName": "Jeff Baz",
+          "username": "baz",
+          "featureLevel": ""
+        },
+        "id": "22269698-dc27-4ec4-bfc8-290bad6000",
+        "type": "identities"
+      }
+    }'

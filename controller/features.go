@@ -172,7 +172,7 @@ func (c *FeaturesController) convertFeature(ctx context.Context, feature *unleas
 
 func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *unleashapi.Feature, user *client.User) *app.Feature {
 	internalUser := false
-	userLevel := featuretoggles.ReleasedLevel
+	userLevel := featuretoggles.ReleasedLevel // default level of features that the user can use
 	if user != nil {
 		userEmail := user.Data.Attributes.Email
 		userEmailVerified := user.Data.Attributes.EmailVerified
@@ -180,7 +180,9 @@ func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *un
 		if userEmailVerified != nil && *userEmailVerified && userEmail != nil && strings.HasSuffix(*userEmail, "@redhat.com") {
 			internalUser = true
 		}
-		if user.Data.Attributes.FeatureLevel != nil {
+		// do not override the userLevel if the value is nil or empty. Any other value is accepted,
+		// but will be converted (with a fallback to `unknown` if needed)
+		if user.Data.Attributes.FeatureLevel != nil && *user.Data.Attributes.FeatureLevel != "" {
 			userLevel = *user.Data.Attributes.FeatureLevel
 		}
 	}
