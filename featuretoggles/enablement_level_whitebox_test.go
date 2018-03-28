@@ -33,9 +33,10 @@ func TestFeatureIsEnabled(t *testing.T) {
 		{released, ExperimentalLevel, true},
 		{released, BetaLevel, true},
 		{released, ReleasedLevel, true},
-		{internal, "", false},     // new user with no level specified
-		{experimental, "", false}, // new user with no level specified
-		{beta, "", false},         // new user with no level specified
+		{internal, "", false},     // new user with no level specified is considered as `released` and can not use a non-`released` feature
+		{experimental, "", false}, // new user with no level specified is considered as `released` and can not use a non-`released` feature
+		{beta, "", false},         // new user with no level specified is considered as `released` and can not use a non-`released` feature
+		{released, "", true},      // new user with no level specified is considered as `released` and can use a `released` feature
 	}
 	for _, test := range testData {
 		t.Run(fmt.Sprintf("%s vs %v -> %t", fromFeatureLevel(test.featureLevel), test.userLevel, test.expectedResult), func(t *testing.T) {
@@ -79,7 +80,7 @@ func TestFeatureLevelConversion(t *testing.T) {
 		for inputValue, expectedFeatureLevel := range dataSet {
 			t.Run(inputValue, func(t *testing.T) {
 				// when
-				result := toFeatureLevel(inputValue)
+				result := toFeatureLevel(inputValue, unknown)
 				// then
 				assert.Equal(t, expectedFeatureLevel, result)
 			})
