@@ -186,13 +186,18 @@ func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *un
 	}
 	enabledForUser := c.togglesClient.IsFeatureEnabled(ctx, *feature, userLevel)
 	log.Debug(ctx, map[string]interface{}{"internal_user": internalUser}, "converting feature")
+	enablementLevel := featuretoggles.ComputeEnablementLevel(ctx, feature, internalUser)
+	var enablement *string
+	if enablementLevel != featuretoggles.UnknownLevel { // skip value in response if enablement level is "unknown"
+		enablement = &enablementLevel
+	}
 	return &app.Feature{
 		ID:   feature.Name,
 		Type: "features",
 		Attributes: &app.FeatureAttributes{
 			Description:     feature.Description,
 			Enabled:         feature.Enabled,
-			EnablementLevel: featuretoggles.ComputeEnablementLevel(ctx, feature, internalUser),
+			EnablementLevel: enablement,
 			UserEnabled:     enabledForUser,
 		},
 	}

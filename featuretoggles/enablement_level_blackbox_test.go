@@ -8,7 +8,6 @@ import (
 	unleashapi "github.com/Unleash/unleash-client-go/api"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestComputeEnablementLevel(t *testing.T) {
@@ -26,6 +25,20 @@ func TestComputeEnablementLevel(t *testing.T) {
 		Description: "Feature with no strategy",
 		Enabled:     true,
 		Strategies:  []unleashapi.Strategy{},
+	}
+
+	misconfiguredStrategyFeature := &unleashapi.Feature{
+		Name:        "singleStrategyFeature",
+		Description: "Feature with single strategy",
+		Enabled:     true,
+		Strategies: []unleashapi.Strategy{
+			{
+				Name: featuretoggles.EnableByLevelStrategyName,
+				Parameters: map[string]interface{}{
+					featuretoggles.LevelParameter: "foo", // invalid value
+				},
+			},
+		},
 	}
 
 	singleStrategyFeature := &unleashapi.Feature{
@@ -84,39 +97,33 @@ func TestComputeEnablementLevel(t *testing.T) {
 
 	internalUser := true
 	externalUser := false
-	internalLevel := featuretoggles.InternalLevel
-	betaLevel := featuretoggles.BetaLevel
-	releasedLevel := featuretoggles.ReleasedLevel
-	dataset := map[bool]map[*unleashapi.Feature]*string{
+	dataset := map[bool]map[*unleashapi.Feature]string{
 		internalUser: {
-			disabledFeature:        nil,
-			noStrategyFeature:      nil,
-			singleStrategyFeature:  &internalLevel, // user is allowed to access this level of feature
-			multiStrategiesFeature: &betaLevel,
-			releasedFeature:        &releasedLevel,
+			disabledFeature:              featuretoggles.UnknownLevel,
+			noStrategyFeature:            featuretoggles.UnknownLevel,
+			misconfiguredStrategyFeature: featuretoggles.UnknownLevel,
+			singleStrategyFeature:        featuretoggles.InternalLevel, // user is allowed to access this level of feature
+			multiStrategiesFeature:       featuretoggles.BetaLevel,
+			releasedFeature:              featuretoggles.ReleasedLevel,
 		},
 		externalUser: {
-			disabledFeature:        nil,
-			noStrategyFeature:      nil,
-			singleStrategyFeature:  nil, // user is *not* allowed to access this level of feature
-			multiStrategiesFeature: &betaLevel,
-			releasedFeature:        &releasedLevel,
+			disabledFeature:              featuretoggles.UnknownLevel,
+			noStrategyFeature:            featuretoggles.UnknownLevel,
+			misconfiguredStrategyFeature: featuretoggles.UnknownLevel,
+			singleStrategyFeature:        featuretoggles.UnknownLevel, // user is *not* allowed to access this level of feature
+			multiStrategiesFeature:       featuretoggles.BetaLevel,
+			releasedFeature:              featuretoggles.ReleasedLevel,
 		},
 	}
 
-	for user, featureData := range dataset {
-		t.Run(fmt.Sprintf("internal user %t", user), func(t *testing.T) {
+	for internal, featureData := range dataset {
+		t.Run(fmt.Sprintf("internal %t", internal), func(t *testing.T) {
 			for inputFeature, expectedLevel := range featureData {
 				t.Run(inputFeature.Description, func(t *testing.T) {
 					// when
-					result := featuretoggles.ComputeEnablementLevel(context.Background(), inputFeature, user)
+					result := featuretoggles.ComputeEnablementLevel(context.Background(), inputFeature, internal)
 					// then
-					if expectedLevel == nil {
-						assert.Nil(t, result)
-					} else {
-						require.NotNil(t, result)
-						assert.Equal(t, *expectedLevel, *result)
-					}
+					assert.Equal(t, expectedLevel, result)
 				})
 			}
 		})
