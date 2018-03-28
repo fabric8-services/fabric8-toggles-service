@@ -120,9 +120,8 @@ func (c *FeaturesController) Show(ctx *app.ShowFeaturesContext) error {
 	feature := c.togglesClient.GetFeature(featureName)
 	if feature == nil {
 		log.Warn(ctx, map[string]interface{}{"feature_name": featureName}, "feature not found")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("feature", featureName))
 	}
-	appFeature := c.convertFeature(ctx, feature, user)
+	appFeature := c.convertFeature(ctx, featureName, feature, user)
 	return ctx.OK(appFeature)
 }
 
@@ -157,20 +156,32 @@ func (c *FeaturesController) getUserProfile(ctx context.Context) (*client.User, 
 func (c *FeaturesController) convertFeatures(ctx context.Context, features []*unleashapi.Feature, user *client.User) *app.FeatureList {
 	result := make([]*app.Feature, 0)
 	for _, feature := range features {
-		result = append(result, c.convertFeatureData(ctx, feature, user))
+		result = append(result, c.convertFeatureData(ctx, feature.Name, feature, user))
 	}
 	return &app.FeatureList{
 		Data: result,
 	}
 }
 
-func (c *FeaturesController) convertFeature(ctx context.Context, feature *unleashapi.Feature, user *client.User) *app.FeatureSingle {
+func (c *FeaturesController) convertFeature(ctx context.Context, name string, feature *unleashapi.Feature, user *client.User) *app.FeatureSingle {
 	return &app.FeatureSingle{
-		Data: c.convertFeatureData(ctx, feature, user),
+		Data: c.convertFeatureData(ctx, name, feature, user),
 	}
 }
 
-func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *unleashapi.Feature, user *client.User) *app.Feature {
+func (c *FeaturesController) convertFeatureData(ctx context.Context, name string, feature *unleashapi.Feature, user *client.User) *app.Feature {
+	// unknown feature has no description and is not enabled at all
+	if feature == nil {
+		return &app.Feature{
+			ID:   name,
+			Type: "features",
+			Attributes: &app.FeatureAttributes{
+				Description: "unknown feature",
+				Enabled:     false,
+				UserEnabled: false,
+			},
+		}
+	}
 	internalUser := false
 	userLevel := featuretoggles.ReleasedLevel // default level of features that the user can use
 	if user != nil {

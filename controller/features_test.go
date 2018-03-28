@@ -378,14 +378,24 @@ func TestShowFeatures(t *testing.T) {
 		})
 	})
 
-	t.Run("fail", func(t *testing.T) {
-		t.Run("not found", func(t *testing.T) {
-			// given
-			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
-			require.NoError(t, err)
-			// when/then
-			test.ShowFeaturesNotFound(t, ctx, svc, ctrl, "UnknownFeature")
-		})
+	t.Run("unknown feature", func(t *testing.T) {
+		// given
+		ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+		require.NoError(t, err)
+		// when
+		_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, "UnknownFeature")
+		// then
+		require.NotNil(t, appFeature)
+		expectedFeatureData := &app.Feature{
+			ID:   "UnknownFeature",
+			Type: "features",
+			Attributes: &app.FeatureAttributes{
+				Description: "unknown feature",
+				Enabled:     false,
+				UserEnabled: false,
+			},
+		}
+		assert.Equal(t, expectedFeatureData, appFeature.Data)
 	})
 
 	t.Run("invalid", func(t *testing.T) {

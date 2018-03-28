@@ -60,7 +60,6 @@ var _ = a.Resource("features", func() {
 		a.Response(d.OK, featureSingle)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
@@ -75,7 +74,6 @@ var _ = a.Resource("features", func() {
 		a.Response(d.OK, featureList)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })
