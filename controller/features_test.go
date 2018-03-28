@@ -285,6 +285,28 @@ func TestShowFeatures(t *testing.T) {
 				assert.Equal(t, expectedFeatureData, appFeature.Data)
 			})
 
+			t.Run("user with empty level", func(t *testing.T) {
+				// given
+				ctx, err := createValidContext("../test/private_key.pem", "user_empty_level", time.Now().Add(1*time.Hour))
+				require.NoError(t, err)
+				// when
+				_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
+				// then
+				require.NotNil(t, appFeature)
+				enablementLevel := featuretoggles.ReleasedLevel
+				expectedFeatureData := &app.Feature{
+					ID:   releasedFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     releasedFeature.Description,
+						Enabled:         true,
+						UserEnabled:     true,
+						EnablementLevel: &enablementLevel,
+					},
+				}
+				assert.Equal(t, expectedFeatureData, appFeature.Data)
+			})
+
 			t.Run("user with enough level", func(t *testing.T) {
 
 				t.Run("experimental level", func(t *testing.T) {

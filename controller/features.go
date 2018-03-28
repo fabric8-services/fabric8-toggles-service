@@ -172,7 +172,7 @@ func (c *FeaturesController) convertFeature(ctx context.Context, feature *unleas
 
 func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *unleashapi.Feature, user *client.User) *app.Feature {
 	internalUser := false
-	userLevel := featuretoggles.ReleasedLevel
+	userLevel := featuretoggles.ReleasedLevel // default level of features that the user can use
 	if user != nil {
 		userEmail := user.Data.Attributes.Email
 		userEmailVerified := user.Data.Attributes.EmailVerified
@@ -180,19 +180,26 @@ func (c *FeaturesController) convertFeatureData(ctx context.Context, feature *un
 		if userEmailVerified != nil && *userEmailVerified && userEmail != nil && strings.HasSuffix(*userEmail, "@redhat.com") {
 			internalUser = true
 		}
-		if user.Data.Attributes.FeatureLevel != nil {
+		// do not override the userLevel if the value is nil or empty. Any other value is accepted,
+		// but will be converted (with a fallback to `unknown` if needed)
+		if user.Data.Attributes.FeatureLevel != nil && *user.Data.Attributes.FeatureLevel != "" {
 			userLevel = *user.Data.Attributes.FeatureLevel
 		}
 	}
 	enabledForUser := c.togglesClient.IsFeatureEnabled(ctx, *feature, userLevel)
 	log.Debug(ctx, map[string]interface{}{"internal_user": internalUser}, "converting feature")
+	enablementLevel := featuretoggles.ComputeEnablementLevel(ctx, feature, internalUser)
+	var enablement *string
+	if enablementLevel != featuretoggles.UnknownLevel { // skip value in response if enablement level is "unknown"
+		enablement = &enablementLevel
+	}
 	return &app.Feature{
 		ID:   feature.Name,
 		Type: "features",
 		Attributes: &app.FeatureAttributes{
 			Description:     feature.Description,
 			Enabled:         feature.Enabled,
-			EnablementLevel: featuretoggles.ComputeEnablementLevel(ctx, feature, internalUser),
+			EnablementLevel: enablement,
 			UserEnabled:     enabledForUser,
 		},
 	}
