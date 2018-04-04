@@ -34,7 +34,7 @@ const (
 )
 
 // ComputeEnablementLevel computes the enablement level required to be able to use the given feature (if it is enabled at all)
-func ComputeEnablementLevel(ctx context.Context, feature *unleashapi.Feature, internalUser bool) string {
+func ComputeEnablementLevel(ctx context.Context, feature unleashapi.Feature, internalUser bool) string {
 	if feature.Enabled == false || len(feature.Strategies) == 0 {
 		return UnknownLevel
 	}

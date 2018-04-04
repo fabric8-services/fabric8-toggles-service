@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	unleash "github.com/Unleash/unleash-client-go"
 	unleashapi "github.com/Unleash/unleash-client-go/api"
-	unleashstrategy "github.com/Unleash/unleash-client-go/strategy"
+	unleashcontext "github.com/Unleash/unleash-client-go/context"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
-	unleashtestclient "github.com/fabric8-services/fabric8-toggles-service/test/unleashclient"
+	testfeaturetoggles "github.com/fabric8-services/fabric8-toggles-service/test/featuretoggles"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,27 +20,106 @@ var betaFeature, releasedFeature unleashapi.Feature
 func init() {
 
 	betaFeature = unleashapi.Feature{
-		Name: "disabledFeature",
+		Name: "foo.disabledFeature",
 	}
 
 	releasedFeature = unleashapi.Feature{
-		Name: "releasedFeature",
-	}
-}
-func NewMockUnleashClient(features ...unleashapi.Feature) *unleashtestclient.MockUnleashClient {
-	return &unleashtestclient.MockUnleashClient{
-		Features: features,
-		Strategies: []unleashstrategy.Strategy{
-			&featuretoggles.EnableByLevelStrategy{},
-		},
+		Name: "bar.releasedFeature",
 	}
 }
 
 func TestGetFeature(t *testing.T) {
+	// given
+	mockUnleashClient := testfeaturetoggles.NewUnleashClientMock(t)
+	mockUnleashClient.GetFeatureFunc = func(name string) *unleashapi.Feature {
+		return &betaFeature
+	}
+
+	t.Run("client ready", func(t *testing.T) {
+		// given
+		ft := featuretoggles.NewClientWithState(mockUnleashClient, true)
+		// when
+		f := ft.GetFeature(context.Background(), "foo.disabledFeature")
+		// then
+		require.NotNil(t, f)
+		assert.Equal(t, betaFeature, *f)
+	})
+
+	t.Run("client not ready", func(t *testing.T) {
+		// given
+		ft := featuretoggles.NewClientWithState(mockUnleashClient, false)
+		// when
+		f := ft.GetFeature(context.Background(), "foo.disabledFeature")
+		// then
+		assert.Nil(t, f)
+	})
 }
 
-func TestGetFeatures(t *testing.T) {
+func TestGetFeaturesByName(t *testing.T) {
+	// given
+	mockUnleashClient := testfeaturetoggles.NewUnleashClientMock(t)
+	mockUnleashClient.GetFeatureFunc = func(name string) *unleashapi.Feature {
+		return &betaFeature
+	}
 
+	t.Run("client ready", func(t *testing.T) {
+		// given
+		ft := featuretoggles.NewClientWithState(mockUnleashClient, true)
+		t.Run("no matches", func(t *testing.T) {
+			// when
+			f := ft.GetFeaturesByName(context.Background(), []string{"foo.disabledFeature", "bar.releasedFeature"})
+			// then
+			require.NotEmpty(t, f)
+			assert.Len(t, f, 2)
+		})
+		t.Run("all matches", func(t *testing.T) {
+			// when
+			f := ft.GetFeaturesByName(context.Background(), []string{"foo.disabledFeature", "bar.releasedFeature"})
+			// then
+			require.NotEmpty(t, f)
+			assert.Len(t, f, 2)
+		})
+	})
+
+	t.Run("client not ready", func(t *testing.T) {
+		// given
+		ft := featuretoggles.NewClientWithState(mockUnleashClient, false)
+		// when
+		f := ft.GetFeaturesByName(context.Background(), []string{"foo.disabledFeature", "bar.releasedFeature"})
+		// then
+		require.Empty(t, f)
+	})
+}
+
+func TestGetFeaturesByPattern(t *testing.T) {
+	// given
+	mockUnleashClient := testfeaturetoggles.NewUnleashClientMock(t)
+	mockUnleashClient.GetFeatureFunc = func(name string) *unleashapi.Feature {
+		return &betaFeature
+	}
+
+	mockUnleashClient.GetEnabledFeaturesFunc = func(ctx *unleashcontext.Context) []string {
+		return []string{betaFeature.Name, releasedFeature.Name}
+	}
+
+	t.Run("client ready", func(t *testing.T) {
+		// given
+		ft := featuretoggles.NewClientWithState(mockUnleashClient, true)
+		// when
+		f := ft.GetFeaturesByPattern(context.Background(), "foo")
+		// then
+		require.NotEmpty(t, f)
+		assert.Len(t, f, 1)
+	})
+
+	t.Run("client not ready", func(t *testing.T) {
+		// given
+		ft := featuretoggles.NewClientWithState(mockUnleashClient, false)
+		// when
+		f := ft.GetFeaturesByPattern(context.Background(), "foo")
+		// then
+		require.Empty(t, f)
+	})
 }
 
 type FeatureEnablementData struct {
@@ -50,15 +131,21 @@ type FeatureEnablementData struct {
 
 func TestIsFeatureEnabled(t *testing.T) {
 
+	// given
 	allTestData := []FeatureEnablementData{
 		{Ready: true, Feature: betaFeature, UserLevel: featuretoggles.BetaLevel, ExpectedEnablement: true},
 		{Ready: false, Feature: releasedFeature, UserLevel: featuretoggles.BetaLevel, ExpectedEnablement: false},
+	}
+	mockClient := testfeaturetoggles.NewUnleashClientMock(t)
+	mockClient.IsEnabledFunc = func(feature string, options ...unleash.FeatureOption) (enabled bool) {
+		// force client to return `true` when the feature to check is `beta`
+		return feature == betaFeature.Name
 	}
 
 	for _, testData := range allTestData {
 		t.Run(fmt.Sprintf("with client ready=%t", testData.Ready), func(t *testing.T) {
 			// given
-			client := featuretoggles.NewClientWithState(&FakeUnleashClient{}, testData.Ready)
+			client := featuretoggles.NewClientWithState(mockClient, testData.Ready)
 			// when
 			result := client.IsFeatureEnabled(context.Background(), testData.Feature, testData.UserLevel)
 			// then
@@ -66,29 +153,4 @@ func TestIsFeatureEnabled(t *testing.T) {
 		})
 	}
 
-}
-
-type FakeUnleashClient struct {
-}
-
-func (c *FakeUnleashClient) Ready() <-chan bool {
-	return nil
-}
-
-func (c *FakeUnleashClient) GetFeature(name string) *unleashapi.Feature {
-	return nil
-}
-
-type featureOption struct {
-	fallback *bool
-	ctx      *context.Context
-}
-
-func (c *FakeUnleashClient) IsEnabled(feature string, options ...unleash.FeatureOption) (enabled bool) {
-	// force client to return `true` when the feature to check is `beta`
-	return feature == betaFeature.Name
-}
-
-func (c *FakeUnleashClient) Close() error {
-	return nil
 }

@@ -155,7 +155,6 @@ generate-goa: deps $(DESIGNS) $(GOAGEN_BIN) deps ## Generate GOA sources. Only n
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg client -o auth
 
-$(MINIMOCK_BIN): 
 	@echo "building the minimock binary..."
 	@cd $(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock && go build -v minimock.go
 
@@ -164,6 +163,9 @@ generate-minimock: deps $(MINIMOCK_BIN) ## Generate Minimock sources. Only neces
 	@echo "Generating mocks..."
 	@-mkdir -p test/token
 	@$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-toggles-service/vendor/github.com/fabric8-services/fabric8-auth/token.Parser -o ./test/token/parser_mock.go -t ParserMock
+	@-mkdir -p test/testfeaturetoggles
+	@$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-toggles-service/featuretoggles.UnleashClient -o ./test/featuretoggles/unleashclient_mock.go -t UnleashClientMock
+	@$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-toggles-service/featuretoggles.Client -o ./test/featuretoggles/toggles_client_wrapper_mock.go -t ClientMock
 
 .PHONY: run
 run: build ## Run fabric8-toggles-service.

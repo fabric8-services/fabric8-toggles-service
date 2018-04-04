@@ -13,21 +13,21 @@ import (
 func TestComputeEnablementLevel(t *testing.T) {
 
 	// given the following features
-	disabledFeature := &unleashapi.Feature{
+	disabledFeature := unleashapi.Feature{
 		Name:        "disabledFeature",
 		Description: "Disabled feature",
 		Enabled:     false,
 		Strategies:  []unleashapi.Strategy{},
 	}
 
-	noStrategyFeature := &unleashapi.Feature{
+	noStrategyFeature := unleashapi.Feature{
 		Name:        "noStrategyFeature",
 		Description: "Feature with no strategy",
 		Enabled:     true,
 		Strategies:  []unleashapi.Strategy{},
 	}
 
-	misconfiguredStrategyFeature := &unleashapi.Feature{
+	misconfiguredStrategyFeature := unleashapi.Feature{
 		Name:        "singleStrategyFeature",
 		Description: "Feature with single strategy",
 		Enabled:     true,
@@ -41,7 +41,7 @@ func TestComputeEnablementLevel(t *testing.T) {
 		},
 	}
 
-	singleStrategyFeature := &unleashapi.Feature{
+	singleStrategyFeature := unleashapi.Feature{
 		Name:        "singleStrategyFeature",
 		Description: "Feature with single strategy",
 		Enabled:     true,
@@ -55,7 +55,7 @@ func TestComputeEnablementLevel(t *testing.T) {
 		},
 	}
 
-	multiStrategiesFeature := &unleashapi.Feature{
+	multiStrategiesFeature := unleashapi.Feature{
 		Name:        "multiStrategiesFeature",
 		Description: "Feature with multiple strategies",
 		Enabled:     true,
@@ -81,7 +81,7 @@ func TestComputeEnablementLevel(t *testing.T) {
 		},
 	}
 
-	releasedFeature := &unleashapi.Feature{
+	releasedFeature := unleashapi.Feature{
 		Name:        "releasedFeature",
 		Description: "Feature released",
 		Enabled:     true,
@@ -97,31 +97,40 @@ func TestComputeEnablementLevel(t *testing.T) {
 
 	internalUser := true
 	externalUser := false
-	dataset := map[bool]map[*unleashapi.Feature]string{
+	dataset := map[bool]map[string]string{
 		internalUser: {
-			disabledFeature:              featuretoggles.UnknownLevel,
-			noStrategyFeature:            featuretoggles.UnknownLevel,
-			misconfiguredStrategyFeature: featuretoggles.UnknownLevel,
-			singleStrategyFeature:        featuretoggles.InternalLevel, // user is allowed to access this level of feature
-			multiStrategiesFeature:       featuretoggles.BetaLevel,
-			releasedFeature:              featuretoggles.ReleasedLevel,
+			disabledFeature.Name:              featuretoggles.UnknownLevel,
+			noStrategyFeature.Name:            featuretoggles.UnknownLevel,
+			misconfiguredStrategyFeature.Name: featuretoggles.UnknownLevel,
+			singleStrategyFeature.Name:        featuretoggles.InternalLevel, // user is allowed to access this level of feature
+			multiStrategiesFeature.Name:       featuretoggles.BetaLevel,
+			releasedFeature.Name:              featuretoggles.ReleasedLevel,
 		},
 		externalUser: {
-			disabledFeature:              featuretoggles.UnknownLevel,
-			noStrategyFeature:            featuretoggles.UnknownLevel,
-			misconfiguredStrategyFeature: featuretoggles.UnknownLevel,
-			singleStrategyFeature:        featuretoggles.UnknownLevel, // user is *not* allowed to access this level of feature
-			multiStrategiesFeature:       featuretoggles.BetaLevel,
-			releasedFeature:              featuretoggles.ReleasedLevel,
+			disabledFeature.Name:              featuretoggles.UnknownLevel,
+			noStrategyFeature.Name:            featuretoggles.UnknownLevel,
+			misconfiguredStrategyFeature.Name: featuretoggles.UnknownLevel,
+			singleStrategyFeature.Name:        featuretoggles.UnknownLevel, // user is *not* allowed to access this level of feature
+			multiStrategiesFeature.Name:       featuretoggles.BetaLevel,
+			releasedFeature.Name:              featuretoggles.ReleasedLevel,
 		},
+	}
+	features := map[string]unleashapi.Feature{
+		disabledFeature.Name:              disabledFeature,
+		noStrategyFeature.Name:            noStrategyFeature,
+		misconfiguredStrategyFeature.Name: misconfiguredStrategyFeature,
+		singleStrategyFeature.Name:        singleStrategyFeature,
+		multiStrategiesFeature.Name:       multiStrategiesFeature,
+		releasedFeature.Name:              releasedFeature,
 	}
 
 	for internal, featureData := range dataset {
 		t.Run(fmt.Sprintf("internal %t", internal), func(t *testing.T) {
-			for inputFeature, expectedLevel := range featureData {
-				t.Run(inputFeature.Description, func(t *testing.T) {
+			for featureName, expectedLevel := range featureData {
+				f := features[featureName]
+				t.Run(f.Description, func(t *testing.T) {
 					// when
-					result := featuretoggles.ComputeEnablementLevel(context.Background(), inputFeature, internal)
+					result := featuretoggles.ComputeEnablementLevel(context.Background(), f, internal)
 					// then
 					assert.Equal(t, expectedLevel, result)
 				})
