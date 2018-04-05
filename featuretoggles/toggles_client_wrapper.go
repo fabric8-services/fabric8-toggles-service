@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/Unleash/unleash-client-go"
@@ -18,7 +17,7 @@ type UnleashClient interface {
 	Ready() <-chan bool
 	GetFeature(name string) *unleashapi.Feature
 	IsEnabled(feature string, options ...unleash.FeatureOption) (enabled bool)
-	GetEnabledFeatures(ctx *unleashcontext.Context) []string
+	GetFeaturesByPattern(pattern string) []unleashapi.Feature
 	Close() error
 }
 
@@ -112,24 +111,7 @@ func (c *ClientImpl) GetFeaturesByPattern(ctx context.Context, pattern string) [
 		log.Error(ctx, map[string]interface{}{"error": "client is not ready"}, "unable to list features by pattern")
 		return result
 	}
-	r, err := regexp.Compile(fmt.Sprintf("^%[1]s$|^%[1]s\\.(.*)", pattern))
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{"error": err}, "unable to list features by pattern")
-		return result
-	}
-	log.Debug(ctx, map[string]interface{}{"regexp": r}, "listing features by pattern")
-	// retrieve the non-disabled features, whatever the user level
-	enabledFeatures := c.UnleashClient.GetEnabledFeatures(&unleashcontext.Context{})
-	for _, id := range enabledFeatures {
-		if r.Match([]byte(id)) {
-			log.Debug(ctx, map[string]interface{}{"regexp": r, "feature_name": id}, "match found")
-			f := c.UnleashClient.GetFeature(id)
-			if f != nil {
-				result = append(result, *f)
-			}
-		}
-	}
-	return result
+	return c.UnleashClient.GetFeaturesByPattern(fmt.Sprintf("^%[1]s$|^%[1]s\\.(.*)", pattern))
 }
 
 // IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given user level

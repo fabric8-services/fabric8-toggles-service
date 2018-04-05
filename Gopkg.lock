@@ -2,7 +2,6 @@
 
 
 [[projects]]
-  branch = "expose_feature"
   name = "github.com/Unleash/unleash-client-go"
   packages = [
     ".",
@@ -12,7 +11,7 @@
     "internal/strategies",
     "strategy"
   ]
-  revision = "93cc55402333b57e65acfa1aca920931da654133"
+  revision = "1d017a5259cd8ebcaa17c83e7662a635383e555f"
   source = "https://github.com/xcoulon/unleash-client-go"
 
 [[projects]]
@@ -341,6 +340,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9d3f657dff97c3c61b9abbf6c827bde7637c1b5c5ed2a522655105baae3e0d01"
+  inputs-digest = "607650159ed68398b50172076f407297f0bd2a94eebb92186c68275df6f4b093"
   solver-name = "gps-cdcl"
   solver-version = 1

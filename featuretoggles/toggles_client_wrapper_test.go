@@ -9,7 +9,6 @@ import (
 
 	unleash "github.com/Unleash/unleash-client-go"
 	unleashapi "github.com/Unleash/unleash-client-go/api"
-	unleashcontext "github.com/Unleash/unleash-client-go/context"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 	testfeaturetoggles "github.com/fabric8-services/fabric8-toggles-service/test/featuretoggles"
 	"github.com/stretchr/testify/assert"
@@ -115,8 +114,8 @@ func TestGetFeaturesByPattern(t *testing.T) {
 	mockUnleashClient := testfeaturetoggles.NewUnleashClientMock(t)
 	mockUnleashClient.GetFeatureFunc = getFeatureByName
 
-	mockUnleashClient.GetEnabledFeaturesFunc = func(ctx *unleashcontext.Context) []string {
-		return []string{fooFeature.Name, barFeature.Name, foobarFeature.Name, fooGroupFeature.Name}
+	mockUnleashClient.GetFeaturesByPatternFunc = func(pattern string) []unleashapi.Feature {
+		return []unleashapi.Feature{fooFeature, fooGroupFeature}
 	}
 
 	t.Run("client ready", func(t *testing.T) {
