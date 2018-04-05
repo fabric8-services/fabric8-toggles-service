@@ -467,7 +467,7 @@ func TestListFeatures(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{disabledFeature.Name, multiStrategiesFeature.Name}, nil)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name})
 			// then
 			experimentalLevel := featuretoggles.BetaLevel
 			expectedData := []*app.Feature{
@@ -499,7 +499,7 @@ func TestListFeatures(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"})
 			// then
 			expectedData := []*app.Feature{}
 			assert.Equal(t, expectedData, featuresList.Data)
@@ -507,7 +507,7 @@ func TestListFeatures(t *testing.T) {
 
 		t.Run("no user provided", func(t *testing.T) {
 			// when
-			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
+			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"})
 			// then
 			expectedData := []*app.Feature{}
 			assert.Equal(t, expectedData, featuresList.Data)
@@ -515,7 +515,7 @@ func TestListFeatures(t *testing.T) {
 
 		t.Run("no user provided only released features matches", func(t *testing.T) {
 			// when
-			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name}, nil)
+			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, nil, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name})
 			// then
 			releasedLevel := featuretoggles.ReleasedLevel
 			betaLevel := featuretoggles.BetaLevel
@@ -579,7 +579,7 @@ func TestListFeatures(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, &pattern)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil)
 			// then
 			experimentalLevel := featuretoggles.BetaLevel
 			expectedData := []*app.Feature{
@@ -632,7 +632,7 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			pattern := "unknown"
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, &pattern)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil)
 			// then
 			expectedData := []*app.Feature{}
 			assert.Equal(t, expectedData, featuresList.Data)
@@ -640,7 +640,7 @@ func TestListFeatures(t *testing.T) {
 
 		t.Run("no user provided", func(t *testing.T) {
 			// when
-			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, nil, &pattern)
+			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, &pattern, nil)
 			// then
 			// then
 			betaLevel := featuretoggles.BetaLevel
@@ -691,7 +691,7 @@ func TestListFeatures(t *testing.T) {
 
 		t.Run("no user provided only released features matches", func(t *testing.T) {
 			// when
-			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, nil, &pattern)
+			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, &pattern, nil)
 			// then
 			betaLevel := featuretoggles.BetaLevel
 			expectedData := []*app.Feature{
@@ -747,7 +747,7 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key2.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			// when/then
-			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
+			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"})
 		})
 
 		t.Run("expired token", func(t *testing.T) {
@@ -755,7 +755,7 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(-1*time.Hour))
 			require.NoError(t, err)
 			// when/then
-			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
+			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"})
 		})
 	})
 

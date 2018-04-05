@@ -96,8 +96,8 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 		log.Warn(ctx, map[string]interface{}{}, "No JWT found in the request.")
 	}
 	// look-up by pattern
-	if ctx.Page != nil {
-		features := c.togglesClient.GetFeaturesByPattern(ctx, *ctx.Page)
+	if ctx.Group != nil {
+		features := c.togglesClient.GetFeaturesByPattern(ctx, *ctx.Group)
 		appFeatures := c.convertFeatures(ctx, features, user)
 		return ctx.OK(appFeatures)
 
