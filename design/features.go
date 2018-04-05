@@ -69,6 +69,7 @@ var _ = a.Resource("features", func() {
 		)
 		a.Params(func() {
 			a.Param("names", a.ArrayOf(d.String), "names")
+			a.Param("group", d.String, "group")
 		})
 		a.Description("Show a list of features by their names.")
 		a.Response(d.OK, featureList)

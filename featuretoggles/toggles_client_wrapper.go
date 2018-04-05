@@ -2,6 +2,7 @@ package featuretoggles
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -16,14 +17,16 @@ type UnleashClient interface {
 	Ready() <-chan bool
 	GetFeature(name string) *unleashapi.Feature
 	IsEnabled(feature string, options ...unleash.FeatureOption) (enabled bool)
+	GetFeaturesByPattern(pattern string) []unleashapi.Feature
 	Close() error
 }
 
 // Client the toggle client interface
 type Client interface {
+	GetFeature(ctx context.Context, name string) *unleashapi.Feature
+	GetFeaturesByName(ctx context.Context, names []string) []unleashapi.Feature
+	GetFeaturesByPattern(ctx context.Context, pattern string) []unleashapi.Feature
 	IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, userLevel string) bool
-	GetFeatures(ctx context.Context, names []string) []*unleashapi.Feature
-	GetFeature(name string) *unleashapi.Feature
 	Close() error
 }
 
@@ -32,6 +35,9 @@ type ClientImpl struct {
 	UnleashClient  UnleashClient
 	clientListener *UnleashClientListener
 }
+
+// verify that `ClientImpl`` is a valid impl of the `Client`` interface
+var _ Client = &ClientImpl{}
 
 // ToggleServiceConfiguration the configuration to the Toggle service
 type ToggleServiceConfiguration interface {
@@ -74,24 +80,38 @@ func (c *ClientImpl) Close() error {
 }
 
 // GetFeature returns the feature given its name
-func (c *ClientImpl) GetFeature(name string) *unleashapi.Feature {
+func (c *ClientImpl) GetFeature(ctx context.Context, name string) *unleashapi.Feature {
+	if !c.clientListener.ready {
+		log.Error(ctx, map[string]interface{}{"error": "client is not ready"}, "unable to list features by name")
+		return nil
+	}
 	return c.UnleashClient.GetFeature(name)
 }
 
-// GetFeatures returns the features fron their names
-func (c *ClientImpl) GetFeatures(ctx context.Context, names []string) []*unleashapi.Feature {
-	result := make([]*unleashapi.Feature, 0)
+// GetFeaturesByName returns the features from their names
+func (c *ClientImpl) GetFeaturesByName(ctx context.Context, names []string) []unleashapi.Feature {
+	result := make([]unleashapi.Feature, 0)
 	if !c.clientListener.ready {
-		log.Warn(ctx, nil, "unable to list features due to: client is not ready")
+		log.Error(ctx, map[string]interface{}{"error": "client is not ready"}, "unable to list features by name")
 		return result
 	}
 	for _, name := range names {
 		f := c.UnleashClient.GetFeature(name)
 		if f != nil {
-			result = append(result, f)
+			result = append(result, *f)
 		}
 	}
 	return result
+}
+
+// GetFeaturesByPattern returns the features whose ID matches the given pattern
+func (c *ClientImpl) GetFeaturesByPattern(ctx context.Context, pattern string) []unleashapi.Feature {
+	result := make([]unleashapi.Feature, 0)
+	if !c.clientListener.ready {
+		log.Error(ctx, map[string]interface{}{"error": "client is not ready"}, "unable to list features by pattern")
+		return result
+	}
+	return c.UnleashClient.GetFeaturesByPattern(fmt.Sprintf("^%[1]s$|^%[1]s\\.(.*)", pattern))
 }
 
 // IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given user level
