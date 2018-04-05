@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var disabledFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature unleashapi.Feature
+var disabledFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature, fooGroupFeature, foobarFeature unleashapi.Feature
 
 func init() {
 	// features
@@ -92,6 +92,21 @@ func init() {
 			},
 		},
 	}
+
+	fooGroupFeature = unleashapi.Feature{
+		Name:        "foo",
+		Description: "foo",
+		Enabled:     false,
+		Strategies:  []unleashapi.Strategy{},
+	}
+
+	foobarFeature = unleashapi.Feature{
+		Name:        "foobar",
+		Description: "foo bar",
+		Enabled:     false,
+		Strategies:  []unleashapi.Strategy{},
+	}
+
 }
 
 type TestFeatureControllerConfig struct {
@@ -548,6 +563,7 @@ func TestListFeatures(t *testing.T) {
 					disabledFeature,
 					singleStrategyFeature,
 					multiStrategiesFeature,
+					fooGroupFeature,
 				}
 			}
 			if pattern == "bar" {
@@ -595,6 +611,16 @@ func TestListFeatures(t *testing.T) {
 						Enabled:         true,
 						UserEnabled:     true,
 						EnablementLevel: &experimentalLevel,
+					},
+				},
+				{
+					ID:   fooGroupFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     fooGroupFeature.Description,
+						Enabled:         false,
+						UserEnabled:     false,
+						EnablementLevel: nil,
 					},
 				},
 			}
@@ -649,6 +675,16 @@ func TestListFeatures(t *testing.T) {
 						EnablementLevel: &betaLevel,
 					},
 				},
+				{
+					ID:   fooGroupFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     fooGroupFeature.Description,
+						Enabled:         false,
+						UserEnabled:     false,
+						EnablementLevel: nil,
+					},
+				},
 			}
 			assert.Equal(t, expectedData, featuresList.Data)
 		})
@@ -687,6 +723,16 @@ func TestListFeatures(t *testing.T) {
 						Enabled:         true,
 						UserEnabled:     false,
 						EnablementLevel: &betaLevel,
+					},
+				},
+				{
+					ID:   fooGroupFeature.Name,
+					Type: "features",
+					Attributes: &app.FeatureAttributes{
+						Description:     fooGroupFeature.Description,
+						Enabled:         false,
+						UserEnabled:     false,
+						EnablementLevel: nil,
 					},
 				},
 			}

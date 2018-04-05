@@ -112,15 +112,17 @@ func (c *ClientImpl) GetFeaturesByPattern(ctx context.Context, pattern string) [
 		log.Error(ctx, map[string]interface{}{"error": "client is not ready"}, "unable to list features by pattern")
 		return result
 	}
-	r, err := regexp.Compile(fmt.Sprintf("%s.*", pattern))
+	r, err := regexp.Compile(fmt.Sprintf("^%[1]s$|^%[1]s\\.(.*)", pattern))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{"error": err}, "unable to list features by pattern")
 		return result
 	}
+	log.Debug(ctx, map[string]interface{}{"regexp": r}, "listing features by pattern")
 	// retrieve the non-disabled features, whatever the user level
 	enabledFeatures := c.UnleashClient.GetEnabledFeatures(&unleashcontext.Context{})
 	for _, id := range enabledFeatures {
 		if r.Match([]byte(id)) {
+			log.Debug(ctx, map[string]interface{}{"regexp": r, "feature_name": id}, "match found")
 			f := c.UnleashClient.GetFeature(id)
 			if f != nil {
 				result = append(result, *f)
