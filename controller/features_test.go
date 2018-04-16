@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/app/test"
 	"github.com/fabric8-services/fabric8-toggles-service/auth"
+	authclient "github.com/fabric8-services/fabric8-toggles-service/auth/client"
 	"github.com/fabric8-services/fabric8-toggles-service/controller"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 	testsupport "github.com/fabric8-services/fabric8-toggles-service/test"
@@ -28,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var disabledFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature, fooGroupFeature, foobarFeature unleashapi.Feature
+var disabledFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature, devFeature, fooGroupFeature, foobarFeature unleashapi.Feature
 
 func init() {
 	// features
@@ -93,6 +94,22 @@ func init() {
 		},
 	}
 
+	devFeature = unleashapi.Feature{
+		Name:        "wip.devFeature",
+		Description: "WIP Feature",
+		Enabled:     true,
+		Strategies: []unleashapi.Strategy{
+			{
+				Name: featuretoggles.EnableByEmailsStrategyName,
+				Parameters: map[string]interface{}{
+					featuretoggles.EmailsParameter: []string{
+						"foo@foo.com",
+					},
+				},
+			},
+		},
+	}
+
 	fooGroupFeature = unleashapi.Feature{
 		Name:        "foo",
 		Description: "foo",
@@ -121,7 +138,7 @@ func (c *TestFeatureControllerConfig) GetTogglesURL() string {
 	return ""
 }
 
-func NewFeaturesController(t *testing.T, tokenParser authtoken.Parser, httpClient *http.Client, client featuretoggles.Client) (*goa.Service, *controller.FeaturesController) {
+func newFeaturesController(t *testing.T, tokenParser authtoken.Parser, httpClient *http.Client, client featuretoggles.Client) (*goa.Service, *controller.FeaturesController) {
 	svc := goa.New("feature")
 	ctrl := controller.NewFeaturesController(svc,
 		tokenParser,
@@ -134,6 +151,75 @@ func NewFeaturesController(t *testing.T, tokenParser authtoken.Parser, httpClien
 	return svc, ctrl
 }
 
+func newClientMock(t *testing.T) *testfeaturetoggles.ClientMock {
+	mockClient := testfeaturetoggles.NewClientMock(t)
+	mockClient.GetFeatureFunc = func(ctx context.Context, name string) *unleashapi.Feature {
+		switch name {
+		case disabledFeature.Name:
+			return &disabledFeature
+		case singleStrategyFeature.Name:
+			return &singleStrategyFeature
+		case multiStrategiesFeature.Name:
+			return &multiStrategiesFeature
+		case releasedFeature.Name:
+			return &releasedFeature
+		case devFeature.Name:
+			return &devFeature
+		default:
+			return nil
+		}
+	}
+	mockClient.IsFeatureEnabledFunc = func(ctx context.Context, feature unleashapi.Feature, user *authclient.User) (bool, string) {
+		log.Debug(ctx, map[string]interface{}{"user": user, "feature_name": feature.Name}, "checking if feature is enabled... (mock)")
+		if reflect.DeepEqual(feature, disabledFeature) {
+			return false, featuretoggles.UnknownLevel // disabled
+		}
+		if reflect.DeepEqual(feature, singleStrategyFeature) {
+			if user != nil && user.Data.Attributes.FeatureLevel != nil && *user.Data.Attributes.FeatureLevel == featuretoggles.InternalLevel {
+				return true, featuretoggles.InternalLevel // internal level
+			}
+			return false, featuretoggles.UnknownLevel // internal level
+		}
+		if reflect.DeepEqual(feature, multiStrategiesFeature) {
+			if user == nil {
+				return false, featuretoggles.BetaLevel
+			}
+			return true, featuretoggles.BetaLevel // assume user is beta or lower
+		}
+		if reflect.DeepEqual(feature, releasedFeature) {
+			return true, featuretoggles.ReleasedLevel
+		}
+		// if reflect.DeepEqual(feature, devFeature) {
+		// 	// check the email address of the user in the ctx, if available
+		// }
+		return false, featuretoggles.UnknownLevel
+	}
+	mockClient.GetFeaturesByNameFunc = func(ctx context.Context, names []string) []unleashapi.Feature {
+		if reflect.DeepEqual(names, []string{disabledFeature.Name, multiStrategiesFeature.Name}) {
+			return []unleashapi.Feature{disabledFeature, multiStrategiesFeature}
+		} else if reflect.DeepEqual(names, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name}) {
+			return []unleashapi.Feature{releasedFeature, disabledFeature, multiStrategiesFeature}
+		}
+		return nil
+	}
+	mockClient.GetFeaturesByPatternFunc = func(ctx context.Context, pattern string) []unleashapi.Feature {
+		if pattern == "foo" {
+			return []unleashapi.Feature{
+				disabledFeature,
+				singleStrategyFeature,
+				multiStrategiesFeature,
+				fooGroupFeature,
+			}
+		}
+		if pattern == "bar" {
+			return []unleashapi.Feature{
+				releasedFeature,
+			}
+		}
+		return []unleashapi.Feature{}
+	}
+	return mockClient
+}
 func TestShowFeatures(t *testing.T) {
 	// given
 	r1, err := recorder.New("../test/data/controller/auth_get_user", recorder.WithMatcher(JWTMatcher()))
@@ -152,37 +238,7 @@ func TestShowFeatures(t *testing.T) {
 	require.NoError(t, err)
 	p, err := token.NewParser(c)
 	require.NoError(t, err)
-	mockClient := testfeaturetoggles.NewClientMock(t)
-	mockClient.GetFeatureFunc = func(ctx context.Context, name string) *unleashapi.Feature {
-		switch name {
-		case disabledFeature.Name:
-			return &disabledFeature
-		case singleStrategyFeature.Name:
-			return &singleStrategyFeature
-		case multiStrategiesFeature.Name:
-			return &multiStrategiesFeature
-		case releasedFeature.Name:
-			return &releasedFeature
-		default:
-			return nil
-		}
-	}
-	mockClient.IsFeatureEnabledFunc = func(ctx context.Context, feature unleashapi.Feature, userLevel string) bool {
-		if reflect.DeepEqual(feature, disabledFeature) {
-			return false
-		}
-		if reflect.DeepEqual(feature, multiStrategiesFeature) && userLevel == featuretoggles.ExperimentalLevel {
-			return true
-		}
-		if reflect.DeepEqual(feature, multiStrategiesFeature) && userLevel == featuretoggles.BetaLevel {
-			return true
-		}
-		if reflect.DeepEqual(feature, releasedFeature) {
-			return true
-		}
-		return false
-	}
-	svc, ctrl := NewFeaturesController(t, p, &http.Client{Transport: r1.Transport}, mockClient)
+	svc, ctrl := newFeaturesController(t, p, &http.Client{Transport: r1.Transport}, newClientMock(t))
 
 	t.Run("disabled for user", func(t *testing.T) {
 
@@ -350,27 +406,6 @@ func TestShowFeatures(t *testing.T) {
 					assert.Equal(t, expectedFeatureData, appFeature.Data)
 				})
 
-				t.Run("nopreproduction level", func(t *testing.T) {
-					// given
-					ctx, err := createValidContext("../test/private_key.pem", "user_nopreproduction_level", time.Now().Add(1*time.Hour))
-					require.NoError(t, err)
-					// when
-					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
-					// then
-					require.NotNil(t, appFeature)
-					enablementLevel := featuretoggles.ReleasedLevel
-					expectedFeatureData := &app.Feature{
-						ID:   releasedFeature.Name,
-						Type: "features",
-						Attributes: &app.FeatureAttributes{
-							Description:     releasedFeature.Description,
-							Enabled:         true,
-							UserEnabled:     true,
-							EnablementLevel: &enablementLevel,
-						},
-					}
-					assert.Equal(t, expectedFeatureData, appFeature.Data)
-				})
 			})
 		})
 	})
@@ -433,35 +468,10 @@ func TestListFeatures(t *testing.T) {
 	require.NoError(t, err)
 	p, err := token.NewParser(c)
 	require.NoError(t, err)
-
-	mockClient := testfeaturetoggles.NewClientMock(t)
-	mockClient.IsFeatureEnabledFunc = func(ctx context.Context, feature unleashapi.Feature, userLevel string) bool {
-		if reflect.DeepEqual(feature, disabledFeature) {
-			return false
-		}
-		if reflect.DeepEqual(feature, multiStrategiesFeature) && userLevel == featuretoggles.ExperimentalLevel {
-			return true
-		}
-		if reflect.DeepEqual(feature, multiStrategiesFeature) && userLevel == featuretoggles.BetaLevel {
-			return true
-		}
-		if reflect.DeepEqual(feature, releasedFeature) {
-			return true
-		}
-		return false
-	}
-	svc, ctrl := NewFeaturesController(t, p, &http.Client{Transport: r1.Transport}, mockClient)
+	mockClient := newClientMock(t)
+	svc, ctrl := newFeaturesController(t, p, &http.Client{Transport: r1.Transport}, mockClient)
 
 	t.Run("list by name", func(t *testing.T) {
-
-		mockClient.GetFeaturesByNameFunc = func(ctx context.Context, names []string) []unleashapi.Feature {
-			if reflect.DeepEqual(names, []string{disabledFeature.Name, multiStrategiesFeature.Name}) {
-				return []unleashapi.Feature{disabledFeature, multiStrategiesFeature}
-			} else if reflect.DeepEqual(names, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name}) {
-				return []unleashapi.Feature{releasedFeature, disabledFeature, multiStrategiesFeature}
-			}
-			return nil
-		}
 
 		t.Run("2 matches", func(t *testing.T) {
 			// when
@@ -469,7 +479,7 @@ func TestListFeatures(t *testing.T) {
 			require.NoError(t, err)
 			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name})
 			// then
-			experimentalLevel := featuretoggles.BetaLevel
+			betaLevel := featuretoggles.BetaLevel
 			expectedData := []*app.Feature{
 				{
 					ID:   disabledFeature.Name,
@@ -488,7 +498,7 @@ func TestListFeatures(t *testing.T) {
 						Description:     multiStrategiesFeature.Description,
 						Enabled:         true,
 						UserEnabled:     true,
-						EnablementLevel: &experimentalLevel,
+						EnablementLevel: &betaLevel,
 					},
 				},
 			}
@@ -557,22 +567,7 @@ func TestListFeatures(t *testing.T) {
 
 	t.Run("list by pattern", func(t *testing.T) {
 
-		mockClient.GetFeaturesByPatternFunc = func(ctx context.Context, pattern string) []unleashapi.Feature {
-			if pattern == "foo" {
-				return []unleashapi.Feature{
-					disabledFeature,
-					singleStrategyFeature,
-					multiStrategiesFeature,
-					fooGroupFeature,
-				}
-			}
-			if pattern == "bar" {
-				return []unleashapi.Feature{
-					releasedFeature,
-				}
-			}
-			return []unleashapi.Feature{}
-		}
+		// given
 		pattern := "foo"
 
 		t.Run("2 matches", func(t *testing.T) {

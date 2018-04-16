@@ -12,11 +12,11 @@ import (
 type FeatureLevel int
 
 const (
-	internal FeatureLevel = iota
+	unknown FeatureLevel = iota
+	internal
 	experimental
 	beta
 	released
-	unknown
 )
 
 // FeatureLevelStr custom type for feature level constants as strings
@@ -35,10 +35,11 @@ const (
 
 // ComputeEnablementLevel computes the enablement level required to be able to use the given feature (if it is enabled at all)
 func ComputeEnablementLevel(ctx context.Context, feature unleashapi.Feature, internalUser bool) string {
+	log.Debug(ctx, map[string]interface{}{"feature_enabled": feature.Enabled}, "computing enablement level...")
 	if feature.Enabled == false || len(feature.Strategies) == 0 {
 		return UnknownLevel
 	}
-	enablementLevel := internal
+	enablementLevel := unknown
 	// iterate on feature's strategies
 	for _, s := range feature.Strategies {
 		// log.Debug(ctx, map[string]interface{}{"feature_name": feature.Name, "enablement_level": enablementLevel, "strategy_name": s.Name}, "computing enablement level")
@@ -46,19 +47,17 @@ func ComputeEnablementLevel(ctx context.Context, feature unleashapi.Feature, int
 			if level, found := s.Parameters[LevelParameter]; found {
 				if levelStr, ok := level.(string); ok {
 					featureLevel := toFeatureLevel(levelStr, unknown)
-					// log.Debug(ctx, map[string]interface{}{"feature_name": feature.Name, "enablement_level": enablementLevel, "strategy_group": featureLevel}, "computing enablement level")
+					log.Debug(ctx, map[string]interface{}{"feature_name": feature.Name, "current_enablement_level": enablementLevel, "feature_level": featureLevel}, "computing enablement level")
 					// beta > experimental > internal (if user is a RH internal)
 					if featureLevel > enablementLevel {
-						enablementLevel = featureLevel
+						if internalUser || (!internalUser && featureLevel != internal) {
+							log.Debug(ctx, map[string]interface{}{"feature_name": feature.Name, "current_enablement_level": enablementLevel, "feature_level": featureLevel, "internal_user": internalUser}, "retaining level")
+							enablementLevel = featureLevel
+						}
 					}
 				}
 			}
 		}
-	}
-	// need to re-adjust the level if the user is "external" and the enablement level is "internal"
-	// i.e., the feature is internal-only, so the external user is not allowed to use it
-	if !internalUser && enablementLevel == internal {
-		enablementLevel = unknown
 	}
 	result := fromFeatureLevel(enablementLevel)
 	log.Debug(ctx, map[string]interface{}{"internal_user": internalUser, "feature_name": feature.Name, "enablement_level": result}, "computed enablement level")

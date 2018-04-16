@@ -9,12 +9,13 @@ import (
 
 	unleash "github.com/Unleash/unleash-client-go"
 	unleashapi "github.com/Unleash/unleash-client-go/api"
+	authclient "github.com/fabric8-services/fabric8-toggles-service/auth/client"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 	testfeaturetoggles "github.com/fabric8-services/fabric8-toggles-service/test/featuretoggles"
 	"github.com/stretchr/testify/assert"
 )
 
-var fooGroupFeature, foobarFeature, fooFeature, barFeature unleashapi.Feature
+var fooGroupFeature, foobarFeature, fooFeature, barFeature, bazFeature unleashapi.Feature
 
 func init() {
 
@@ -25,11 +26,26 @@ func init() {
 		Name: "foobar",
 	}
 	fooFeature = unleashapi.Feature{
-		Name: "foogroup.foo",
+		Name:    "foogroup.foo",
+		Enabled: true,
+		Strategies: []unleashapi.Strategy{
+			{
+				Name: featuretoggles.EnableByLevelStrategyName,
+				Parameters: map[string]interface{}{
+					featuretoggles.LevelParameter: featuretoggles.BetaLevel,
+				},
+			},
+		},
 	}
 
 	barFeature = unleashapi.Feature{
-		Name: "bar",
+		Name:    "bar",
+		Enabled: true,
+	}
+
+	bazFeature = unleashapi.Feature{
+		Name:    "baz",
+		Enabled: false,
 	}
 }
 
@@ -139,33 +155,72 @@ func TestGetFeaturesByPattern(t *testing.T) {
 }
 
 type FeatureEnablementData struct {
-	Ready              bool
-	Feature            unleashapi.Feature
-	UserLevel          string
-	ExpectedEnablement bool
+	Ready                   bool
+	Feature                 unleashapi.Feature
+	User                    authclient.User
+	ExpectedEnablement      bool
+	ExpectedEnablementLevel string
 }
 
 func TestIsFeatureEnabled(t *testing.T) {
-
+	betaLevel := featuretoggles.BetaLevel
 	// given
 	allTestData := []FeatureEnablementData{
-		{Ready: true, Feature: fooFeature, UserLevel: featuretoggles.BetaLevel, ExpectedEnablement: true},
-		{Ready: false, Feature: barFeature, UserLevel: featuretoggles.BetaLevel, ExpectedEnablement: false},
+		{
+			Ready:   true,
+			Feature: fooFeature,
+			User: authclient.User{
+				Data: &authclient.UserData{
+					Attributes: &authclient.UserDataAttributes{
+						FeatureLevel: &betaLevel,
+					},
+				},
+			},
+			ExpectedEnablement:      true,
+			ExpectedEnablementLevel: featuretoggles.BetaLevel,
+		},
+		{
+			Ready:   true,
+			Feature: bazFeature,
+			User: authclient.User{
+				Data: &authclient.UserData{
+					Attributes: &authclient.UserDataAttributes{
+						FeatureLevel: &betaLevel,
+					},
+				},
+			},
+			ExpectedEnablement:      false,
+			ExpectedEnablementLevel: featuretoggles.UnknownLevel,
+		},
+		{
+			Ready:   false,
+			Feature: barFeature,
+			User: authclient.User{
+				Data: &authclient.UserData{
+					Attributes: &authclient.UserDataAttributes{
+						FeatureLevel: &betaLevel,
+					},
+				},
+			},
+			ExpectedEnablement:      false,
+			ExpectedEnablementLevel: featuretoggles.UnknownLevel,
+		},
 	}
 	mockClient := testfeaturetoggles.NewUnleashClientMock(t)
 	mockClient.IsEnabledFunc = func(feature string, options ...unleash.FeatureOption) (enabled bool) {
-		// force client to return `true` when the feature to check is `beta`
+		// force client to return `true` when the feature to check is `fooFeature`
 		return feature == fooFeature.Name
 	}
 
 	for _, testData := range allTestData {
-		t.Run(fmt.Sprintf("with client ready=%t", testData.Ready), func(t *testing.T) {
+		t.Run(fmt.Sprintf("with feature %s", testData.Feature.Name), func(t *testing.T) {
 			// given
 			client := featuretoggles.NewClientWithState(mockClient, testData.Ready)
 			// when
-			result := client.IsFeatureEnabled(context.Background(), testData.Feature, testData.UserLevel)
+			enabled, level := client.IsFeatureEnabled(context.Background(), testData.Feature, &testData.User)
 			// then
-			assert.Equal(t, testData.ExpectedEnablement, result)
+			assert.Equal(t, testData.ExpectedEnablement, enabled)
+			assert.Equal(t, testData.ExpectedEnablementLevel, level)
 		})
 	}
 

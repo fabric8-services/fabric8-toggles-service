@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Unleash/unleash-client-go"
 	unleashapi "github.com/Unleash/unleash-client-go/api"
 	unleashcontext "github.com/Unleash/unleash-client-go/context"
 	"github.com/fabric8-services/fabric8-auth/log"
+	authclient "github.com/fabric8-services/fabric8-toggles-service/auth/client"
 )
 
 // UnleashClient the interface to the unleash client
@@ -26,7 +28,7 @@ type Client interface {
 	GetFeature(ctx context.Context, name string) *unleashapi.Feature
 	GetFeaturesByName(ctx context.Context, names []string) []unleashapi.Feature
 	GetFeaturesByPattern(ctx context.Context, pattern string) []unleashapi.Feature
-	IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, userLevel string) bool
+	IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, user *authclient.User) (bool, string)
 	Close() error
 }
 
@@ -52,7 +54,7 @@ func NewDefaultClient(serviceName string, config ToggleServiceConfiguration) (Cl
 		unleash.WithAppName(serviceName),
 		unleash.WithInstanceId(os.Getenv("HOSTNAME")),
 		unleash.WithUrl(config.GetTogglesURL()),
-		unleash.WithStrategies(&EnableByLevelStrategy{}),
+		unleash.WithStrategies(EnableByLevelStrategy{}, EnableByEmailsStrategy{}),
 		unleash.WithMetricsInterval(1*time.Minute),
 		unleash.WithRefreshInterval(10*time.Second),
 		unleash.WithListener(&l),
@@ -115,18 +117,38 @@ func (c *ClientImpl) GetFeaturesByPattern(ctx context.Context, pattern string) [
 }
 
 // IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given user level
-func (c *ClientImpl) IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, userLevel string) bool {
+func (c *ClientImpl) IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, user *authclient.User) (bool, string) {
 	if !c.clientListener.ready {
 		log.Warn(ctx, nil, "unable to check if feature is enabled due to: client is not ready")
-		return false
+		return false, UnknownLevel
 	}
-	log.Debug(ctx, map[string]interface{}{"user_level": userLevel}, "checking if feature is enabled for user...")
-	return c.UnleashClient.IsEnabled(
+	internalUser := false
+	userLevel := ReleasedLevel // default level of features that the user can use
+	userEmail := ""            // default email: empty
+	if user != nil {
+		if user.Data.Attributes.Email != nil {
+			userEmail = *user.Data.Attributes.Email
+		}
+		// internal users have may be able to access the feature by opting-in to the `internal` level of features.
+		if user.Data.Attributes.EmailVerified != nil && *user.Data.Attributes.EmailVerified && strings.HasSuffix(userEmail, "@redhat.com") {
+			internalUser = true
+		}
+		// do not override the userLevel if the value is nil or empty. Any other value is accepted,
+		// but will be converted (with a fallback to `unknown` if needed)
+		if user.Data.Attributes.FeatureLevel != nil && *user.Data.Attributes.FeatureLevel != "" {
+			userLevel = *user.Data.Attributes.FeatureLevel
+		}
+	}
+	log.Debug(ctx, map[string]interface{}{"user_level": userLevel, "user_email": userEmail}, "checking if feature is enabled for user...")
+	userEnabled := c.UnleashClient.IsEnabled(
 		feature.Name,
 		unleash.WithContext(unleashcontext.Context{
 			Properties: map[string]string{
-				LevelParameter: userLevel,
+				LevelParameter:  userLevel,
+				EmailsParameter: userEmail,
 			},
 		}),
 	)
+	enablementLevel := ComputeEnablementLevel(ctx, feature, internalUser)
+	return userEnabled, enablementLevel
 }
