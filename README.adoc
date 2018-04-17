@@ -76,17 +76,25 @@ To run unit tests:
 make build test
 ```
 
-:deploy:
-=== Deploy
-You're now ready to deploy the service. 2 options:
+=== Docker build
 
-`Deploy fabric8-toggles server on Minishift`::
-* For local deployment, we recommend you use link:./minishift/README.adoc[minishift deployment instructions]
+* build image from centos
 
-`Deploy fabric8-toggles-service on your localhost`::
+```
+make image
+```
 
-* Run `F8_TOGGLES_URL=http://toggles-fabric8.192.168.64.4.xip.io/api F8_AUTH_URL=https://auth.prod-preview.openshift.io make run`
-* where `F8_TOGGLES_URL` points to the exposed route on minishift and `F8_AUTH_URL` target prod-preview.
+* run your docker image in minishift
+```
+make deploy-minishift
+```
+
+* Deploy locally:
+
+```
+F8_TOGGLES_URL=http://toggles-fabric8.192.168.64.4.xip.io/api F8_AUTH_URL=https://auth.prod-preview.openshift.io make run
+```
+where `F8_TOGGLES_URL` points to the exposed route on minishift and `F8_AUTH_URL` target prod-preview.
 
 === Configure
 `Configure unleash database`::
@@ -128,17 +136,3 @@ $ curl http://localhost:8080/api/features?names\=Planner\&names\=Applications
   ]
 }
 ```
-
-=== Docker build
-
-* build image from centos
-
-```
-make image
-```
-
-* run your docker image in minishift
-```
-make deploy-minishift
-```
-
