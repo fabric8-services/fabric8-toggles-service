@@ -97,20 +97,27 @@ F8_TOGGLES_URL=http://toggles-fabric8.192.168.64.4.xip.io/api F8_AUTH_URL=https:
 where `F8_TOGGLES_URL` points to the exposed route on minishift and `F8_AUTH_URL` target prod-preview.
 
 === Configure
-`Configure unleash database`::
 
-* Go to fabric8-toggles-server admin console (ie: the unleash admin console)
-   http://fabric8-toggles-fabric8.MINISHIFT_IP.nip.io/#/strategies add a strategy with name `enableByLevel` with a parameter `level`
-* Go to features list, add a feature with name "feature1", give a description and add the newly created strategy, enter `Red Hat`
+==== Configure unleash database
+
+* Go to fabric8-toggles-server admin console (ie: the unleash admin console) http://fabric8-toggles-fabric8.MINISHIFT_IP.nip.io
+* In strategy tab:
+  ** add a strategy with name `enableByLevel` with a parameter `level`, choose `string` for parameter type.
+  ** add a strategy with name `enableByEmails` with a parameter `emails`, choose `list` for parameter type.
+* Go to features list:
+  ** add a feature with name "Planner", give a description and add the newly created `enableByLevel` strategy, enter `released`.
+  ** add a feature with name `Analyze`, give a description and add the newly created `enableByEmails` strategy, enter your prod-preview and prod emails.
 for `level`. Enable the feature.
 
 [NOTE]
-This is a temporary settings, the fabric8-server should bootstrap those value.
+This is a temporary settings, the fabric8-server should bootstrap those values.
 
-`Test your service locally with a curl`::
+==== Test your service locally with a curl
+
+* For anonymous user
 
 ```
-$ curl http://localhost:8080/api/features?names\=Planner\&names\=Applications
+$ curl http://localhost:8080/api/features?names\=Planner
 {
   "data": [
     {
@@ -122,17 +129,14 @@ $ curl http://localhost:8080/api/features?names\=Planner\&names\=Applications
       },
       "id": "Planner",
       "type": "features"
-    },
-    {
-      "attributes": {
-        "description": "Application's description",
-        "enabled": true,
-        "enablement-level": "beta",
-        "user-enabled": false
-      },
-      "id": "Applications",
-      "type": "features"
-    }"type": "features"
+    }
   ]
 }
+```
+
+* For logged-in user
+
+```
+$ export TOKEN=YOUT_TOKEN
+$ curl http://localhost:8080/api/features\?group\=Analyze -H "Authorization: Bearer $TOKEN"
 ```

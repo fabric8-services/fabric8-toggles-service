@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	unleashapi "github.com/Unleash/unleash-client-go/api"
 	"github.com/fabric8-services/fabric8-auth/goasupport"
@@ -12,7 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-auth/token"
 	"github.com/fabric8-services/fabric8-toggles-service/app"
 	"github.com/fabric8-services/fabric8-toggles-service/auth"
-	"github.com/fabric8-services/fabric8-toggles-service/auth/client"
+	authclient "github.com/fabric8-services/fabric8-toggles-service/auth/client"
 	"github.com/fabric8-services/fabric8-toggles-service/errors"
 	"github.com/fabric8-services/fabric8-toggles-service/featuretoggles"
 	"github.com/fabric8-services/fabric8-toggles-service/jsonapi"
@@ -81,7 +80,7 @@ func WithTogglesClient(client featuretoggles.Client) FeaturesControllerOption {
 
 // List runs the list action.
 func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
-	var user *client.User
+	var user *authclient.User
 	jwtToken := goajwt.ContextJWT(ctx)
 	if jwtToken != nil {
 		_, err := c.tokenParser.Parse(ctx, jwtToken.Raw)
@@ -115,7 +114,7 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 // Show runs the show action.
 func (c *FeaturesController) Show(ctx *app.ShowFeaturesContext) error {
 	jwtToken := goajwt.ContextJWT(ctx)
-	var user *client.User
+	var user *authclient.User
 	if jwtToken != nil {
 		_, err := c.tokenParser.Parse(ctx, jwtToken.Raw)
 		if err != nil {
@@ -135,7 +134,7 @@ func (c *FeaturesController) Show(ctx *app.ShowFeaturesContext) error {
 }
 
 // getUserProfile retrieves the user's profile from the auth service, by forwarding the current JWT token
-func (c *FeaturesController) getUserProfile(ctx context.Context) (*client.User, error) {
+func (c *FeaturesController) getUserProfile(ctx context.Context) (*authclient.User, error) {
 	authClient, err := auth.NewClient(ctx, c.config.GetAuthServiceURL(), auth.WithHTTPClient(c.httpClient))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -143,7 +142,7 @@ func (c *FeaturesController) getUserProfile(ctx context.Context) (*client.User, 
 		}, "unable to initialize auth service client")
 		return nil, errs.Wrap(err, "unable to initialize auth service client")
 	}
-	res, err := authClient.ShowUser(goasupport.ForwardContextRequestID(ctx), client.ShowUserPath(), nil, nil)
+	res, err := authClient.ShowUser(goasupport.ForwardContextRequestID(ctx), authclient.ShowUserPath(), nil, nil)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
@@ -162,7 +161,7 @@ func (c *FeaturesController) getUserProfile(ctx context.Context) (*client.User, 
 	return authClient.DecodeUser(res)
 }
 
-func (c *FeaturesController) convertFeatures(ctx context.Context, features []unleashapi.Feature, user *client.User) *app.FeatureList {
+func (c *FeaturesController) convertFeatures(ctx context.Context, features []unleashapi.Feature, user *authclient.User) *app.FeatureList {
 	result := make([]*app.Feature, 0)
 	for _, feature := range features {
 		result = append(result, c.convertFeatureData(ctx, feature.Name, feature, user))
@@ -172,7 +171,7 @@ func (c *FeaturesController) convertFeatures(ctx context.Context, features []unl
 	}
 }
 
-func (c *FeaturesController) convertFeature(ctx context.Context, name string, feature *unleashapi.Feature, user *client.User) *app.FeatureSingle {
+func (c *FeaturesController) convertFeature(ctx context.Context, name string, feature *unleashapi.Feature, user *authclient.User) *app.FeatureSingle {
 	// unknown feature has no description and is not enabled at all
 	if feature == nil {
 		log.Warn(ctx, map[string]interface{}{"feature_name": name}, "feature not found")
@@ -193,25 +192,8 @@ func (c *FeaturesController) convertFeature(ctx context.Context, name string, fe
 	}
 }
 
-func (c *FeaturesController) convertFeatureData(ctx context.Context, name string, feature unleashapi.Feature, user *client.User) *app.Feature {
-	internalUser := false
-	userLevel := featuretoggles.ReleasedLevel // default level of features that the user can use
-	if user != nil {
-		userEmail := user.Data.Attributes.Email
-		userEmailVerified := user.Data.Attributes.EmailVerified
-		// internal users have may be able to access the feature by opting-in to the `internal` level of features.
-		if userEmailVerified != nil && *userEmailVerified && userEmail != nil && strings.HasSuffix(*userEmail, "@redhat.com") {
-			internalUser = true
-		}
-		// do not override the userLevel if the value is nil or empty. Any other value is accepted,
-		// but will be converted (with a fallback to `unknown` if needed)
-		if user.Data.Attributes.FeatureLevel != nil && *user.Data.Attributes.FeatureLevel != "" {
-			userLevel = *user.Data.Attributes.FeatureLevel
-		}
-	}
-	enabledForUser := c.togglesClient.IsFeatureEnabled(ctx, feature, userLevel)
-	log.Debug(ctx, map[string]interface{}{"internal_user": internalUser}, "converting feature")
-	enablementLevel := featuretoggles.ComputeEnablementLevel(ctx, feature, internalUser)
+func (c *FeaturesController) convertFeatureData(ctx context.Context, name string, feature unleashapi.Feature, user *authclient.User) *app.Feature {
+	enabledForUser, enablementLevel := c.togglesClient.IsFeatureEnabled(ctx, feature, user)
 	var enablement *string
 	if enablementLevel != featuretoggles.UnknownLevel { // skip value in response if enablement level is "unknown"
 		enablement = &enablementLevel

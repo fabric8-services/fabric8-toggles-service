@@ -17,13 +17,13 @@ type EnableByLevelStrategy struct {
 }
 
 // Name the name of the stragegy. Must match the name on the Unleash server.
-func (s *EnableByLevelStrategy) Name() string {
+func (s EnableByLevelStrategy) Name() string {
 	return EnableByLevelStrategyName
 }
 
 // IsEnabled returns `true` if the given context is compatible with the settings configured on the Unleash server
-func (s *EnableByLevelStrategy) IsEnabled(settings map[string]interface{}, ctx *unleashcontext.Context) bool {
-	log.Debug(nil, map[string]interface{}{"settings_level": settings[LevelParameter], "context_level": ctx.Properties[LevelParameter]}, "checking if feature is enabled for user, based on his/her group...")
+func (s EnableByLevelStrategy) IsEnabled(settings map[string]interface{}, ctx *unleashcontext.Context) bool {
+	log.Debug(nil, map[string]interface{}{"settings_level": settings[LevelParameter], "context_level": ctx.Properties[LevelParameter]}, "checking if feature is enabled for user, based on his/her feature level...")
 	userLevel := ctx.Properties[LevelParameter]
 	featureLevel := toFeatureLevel(settings[LevelParameter].(string), unknown)
 	return featureLevel.IsEnabled(userLevel)
