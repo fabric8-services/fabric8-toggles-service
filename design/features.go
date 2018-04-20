@@ -5,19 +5,19 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-var featureSingle = JSONSingle(
-	"Feature", "Holds a single feature",
-	feature,
+var userFeatureSingle = JSONSingle(
+	"UserFeature", "Holds a single user feature",
+	userFeature,
 	nil)
 
-var featureList = JSONList(
-	"Feature", "Holds the list of features",
-	feature,
+var userFeatureList = JSONList(
+	"UserFeature", "Holds the list of user features",
+	userFeature,
 	nil,
 	nil)
 
-var feature = a.Type("Feature", func() {
-	a.Description(`JSONAPI for the feature object. See also http://jsonapi.org/format/#document-resource-object`)
+var userFeature = a.Type("UserFeature", func() {
+	a.Description(`JSONAPI for the user feature object. See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("id", d.String, "Id of feature", func() {
 		a.Example("Feature name")
 	})
@@ -25,11 +25,11 @@ var feature = a.Type("Feature", func() {
 		a.Example("features")
 	})
 
-	a.Attribute("attributes", featureAttributes)
+	a.Attribute("attributes", userFeatureAttributes)
 	a.Required("id", "type", "attributes")
 })
 
-var featureAttributes = a.Type("FeatureAttributes", func() {
+var userFeatureAttributes = a.Type("UserFeatureAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a Feature. See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("description", d.String, "The description of the feature", func() {
 		a.Example("Description of the feature")
@@ -57,7 +57,9 @@ var _ = a.Resource("features", func() {
 			a.Param("featureName", d.String, "featureName")
 		})
 		a.Description("Show feature details.")
-		a.Response(d.OK, featureSingle)
+		a.UseTrait("conditional")
+		a.Response(d.OK, userFeatureSingle)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -72,7 +74,9 @@ var _ = a.Resource("features", func() {
 			a.Param("group", d.String, "group")
 		})
 		a.Description("Show a list of features by their names.")
-		a.Response(d.OK, featureList)
+		a.UseTrait("conditional")
+		a.Response(d.OK, userFeatureList)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)

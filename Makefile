@@ -154,6 +154,7 @@ generate-goa: deps $(DESIGNS) $(GOAGEN_BIN) deps ## Generate GOA sources. Only n
 	$(GOAGEN_BIN) controller -d ${PACKAGE_NAME}/${DESIGN_DIR} -o controller/ --pkg controller --app-pkg app
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg client -o auth
+	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=${PACKAGE_NAME}/goasupport/conditional_request --out app
 
 $(MINIMOCK_BIN):
 	@echo "building the minimock binary..."

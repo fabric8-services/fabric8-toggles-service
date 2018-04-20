@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	unleashapi "github.com/Unleash/unleash-client-go/api"
 	"github.com/fabric8-services/fabric8-auth/goasupport"
 	"github.com/fabric8-services/fabric8-auth/log"
 	"github.com/fabric8-services/fabric8-auth/rest"
@@ -32,6 +31,7 @@ type FeaturesController struct {
 // FeaturesControllerConfig the configuration required for the FeaturesController
 type FeaturesControllerConfig interface {
 	featuretoggles.ToggleServiceConfiguration
+	GetFeaturesCacheControl() string
 	GetAuthServiceURL() string
 }
 
@@ -94,20 +94,25 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 	} else {
 		log.Warn(ctx, map[string]interface{}{}, "No JWT found in the request.")
 	}
+	var features []featuretoggles.UserFeature
 	// look-up by pattern
 	if ctx.Group != nil {
-		features := c.togglesClient.GetFeaturesByPattern(ctx, *ctx.Group)
-		appFeatures := c.convertFeatures(ctx, features, user)
-		return ctx.OK(appFeatures)
+		features = c.togglesClient.GetFeaturesByPattern(ctx, *ctx.Group, user)
 
 	} else if ctx.Names != nil {
-		features := c.togglesClient.GetFeaturesByName(ctx, ctx.Names)
-		appFeatures := c.convertFeatures(ctx, features, user)
-		return ctx.OK(appFeatures)
+		features = c.togglesClient.GetFeaturesByName(ctx, ctx.Names, user)
 	}
-	// default, empty response
-	return ctx.OK(&app.FeatureList{
-		Data: []*app.Feature{},
+	if features == nil {
+		log.Info(ctx, nil, "missing query params in request")
+		// default, empty response
+		return ctx.OK(&app.UserFeatureList{
+			Data: []*app.UserFeature{},
+		})
+	}
+
+	return ctx.ConditionalEntities(features, c.config.GetFeaturesCacheControl, func() error {
+		appFeatures := c.convertFeatures(ctx, features)
+		return ctx.OK(appFeatures)
 	})
 }
 
@@ -128,9 +133,11 @@ func (c *FeaturesController) Show(ctx *app.ShowFeaturesContext) error {
 		log.Warn(ctx, map[string]interface{}{}, "No JWT found in the request.")
 	}
 	featureName := ctx.FeatureName
-	feature := c.togglesClient.GetFeature(ctx, featureName)
-	appFeature := c.convertFeature(ctx, featureName, feature, user)
-	return ctx.OK(appFeature)
+	feature := c.togglesClient.GetFeature(ctx, featureName, user)
+	return ctx.ConditionalRequest(feature, c.config.GetFeaturesCacheControl, func() error {
+		appFeature := c.convertFeature(ctx, featureName, feature)
+		return ctx.OK(appFeature)
+	})
 }
 
 // getUserProfile retrieves the user's profile from the auth service, by forwarding the current JWT token
@@ -161,25 +168,25 @@ func (c *FeaturesController) getUserProfile(ctx context.Context) (*authclient.Us
 	return authClient.DecodeUser(res)
 }
 
-func (c *FeaturesController) convertFeatures(ctx context.Context, features []unleashapi.Feature, user *authclient.User) *app.FeatureList {
-	result := make([]*app.Feature, 0)
+func (c *FeaturesController) convertFeatures(ctx context.Context, features []featuretoggles.UserFeature) *app.UserFeatureList {
+	result := make([]*app.UserFeature, 0)
 	for _, feature := range features {
-		result = append(result, c.convertFeatureData(ctx, feature.Name, feature, user))
+		result = append(result, c.convertFeatureData(ctx, feature.Name, feature))
 	}
-	return &app.FeatureList{
+	return &app.UserFeatureList{
 		Data: result,
 	}
 }
 
-func (c *FeaturesController) convertFeature(ctx context.Context, name string, feature *unleashapi.Feature, user *authclient.User) *app.FeatureSingle {
+func (c *FeaturesController) convertFeature(ctx context.Context, name string, feature featuretoggles.UserFeature) *app.UserFeatureSingle {
 	// unknown feature has no description and is not enabled at all
-	if feature == nil {
+	if feature == featuretoggles.ZeroUserFeature {
 		log.Warn(ctx, map[string]interface{}{"feature_name": name}, "feature not found")
-		return &app.FeatureSingle{
-			Data: &app.Feature{
+		return &app.UserFeatureSingle{
+			Data: &app.UserFeature{
 				ID:   name,
 				Type: "features",
-				Attributes: &app.FeatureAttributes{
+				Attributes: &app.UserFeatureAttributes{
 					Description: "unknown feature",
 					Enabled:     false,
 					UserEnabled: false,
@@ -187,25 +194,24 @@ func (c *FeaturesController) convertFeature(ctx context.Context, name string, fe
 			},
 		}
 	}
-	return &app.FeatureSingle{
-		Data: c.convertFeatureData(ctx, name, *feature, user),
+	return &app.UserFeatureSingle{
+		Data: c.convertFeatureData(ctx, name, feature),
 	}
 }
 
-func (c *FeaturesController) convertFeatureData(ctx context.Context, name string, feature unleashapi.Feature, user *authclient.User) *app.Feature {
-	enabledForUser, enablementLevel := c.togglesClient.IsFeatureEnabled(ctx, feature, user)
-	var enablement *string
-	if enablementLevel != featuretoggles.UnknownLevel { // skip value in response if enablement level is "unknown"
-		enablement = &enablementLevel
+func (c *FeaturesController) convertFeatureData(ctx context.Context, name string, feature featuretoggles.UserFeature) *app.UserFeature {
+	var enablementLevel *string
+	if feature.EnablementLevel != featuretoggles.UnknownLevel {
+		enablementLevel = &feature.EnablementLevel
 	}
-	return &app.Feature{
+	return &app.UserFeature{
 		ID:   feature.Name,
 		Type: "features",
-		Attributes: &app.FeatureAttributes{
+		Attributes: &app.UserFeatureAttributes{
 			Description:     feature.Description,
 			Enabled:         feature.Enabled,
-			EnablementLevel: enablement,
-			UserEnabled:     enabledForUser,
+			EnablementLevel: enablementLevel,
+			UserEnabled:     feature.UserEnabled,
 		},
 	}
 }
