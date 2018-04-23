@@ -125,7 +125,7 @@ func (c *Data) setConfigDefaults() {
 	// ----
 	// Cache control
 	// ----
-	c.v.SetDefault(varFeaturesCacheControl, "private,max-age=10")
+	c.v.SetDefault(varFeaturesCacheControl, "private,max-age=0")
 
 }
 
