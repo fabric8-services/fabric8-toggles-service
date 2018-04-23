@@ -49,6 +49,7 @@ const (
 	varDeveloperModeEnabled           = "developer.mode.enabled"
 	varTogglesURL                     = "toggles.url"
 	varAuthURL                        = "auth.url"
+	varFeaturesCacheControl           = "features.cachecontrol"
 	varAPIServerInsecureSkipTLSVerify = "api.server.insecure.skip.tls.verify"
 	varLogLevel                       = "log.level"
 	varLogJSON                        = "log.json"
@@ -62,6 +63,11 @@ type Data struct {
 // GetAuthServiceURL returns the Auth Service URL
 func (c *Data) GetAuthServiceURL() string {
 	return c.v.GetString(varAuthURL)
+}
+
+// GetFeaturesCacheControl returns the `cache-control` response header value to use when returning features
+func (c *Data) GetFeaturesCacheControl() string {
+	return c.v.GetString(varFeaturesCacheControl)
 }
 
 // NewData creates a configuration reader object using a configurable configuration file path
@@ -115,6 +121,11 @@ func (c *Data) setConfigDefaults() {
 	//-----
 	c.v.SetDefault(varDeveloperModeEnabled, false)
 	c.v.SetDefault(varLogLevel, defaultLogLevel)
+
+	// ----
+	// Cache control
+	// ----
+	c.v.SetDefault(varFeaturesCacheControl, "private,max-age=0")
 
 }
 

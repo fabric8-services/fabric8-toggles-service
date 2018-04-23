@@ -25,10 +25,10 @@ type UnleashClient interface {
 
 // Client the toggle client interface
 type Client interface {
-	GetFeature(ctx context.Context, name string) *unleashapi.Feature
-	GetFeaturesByName(ctx context.Context, names []string) []unleashapi.Feature
-	GetFeaturesByPattern(ctx context.Context, pattern string) []unleashapi.Feature
-	IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, user *authclient.User) (bool, string)
+	GetFeature(ctx context.Context, name string, user *authclient.User) UserFeature
+	GetFeaturesByName(ctx context.Context, names []string, user *authclient.User) []UserFeature
+	GetFeaturesByPattern(ctx context.Context, pattern string, user *authclient.User) []UserFeature
+	// IsFeatureEnabled(ctx context.Context, feature UserFeature, user *authclient.User) (bool, string)
 	Close() error
 }
 
@@ -82,42 +82,61 @@ func (c *ClientImpl) Close() error {
 }
 
 // GetFeature returns the feature given its name
-func (c *ClientImpl) GetFeature(ctx context.Context, name string) *unleashapi.Feature {
+func (c *ClientImpl) GetFeature(ctx context.Context, name string, user *authclient.User) UserFeature {
 	if !c.clientListener.ready {
 		log.Error(ctx, map[string]interface{}{"error": "client is not ready"}, "unable to list features by name")
-		return nil
+		return UserFeature{}
 	}
-	return c.UnleashClient.GetFeature(name)
+	f := c.UnleashClient.GetFeature(name)
+	if f == nil {
+		return UserFeature{}
+	}
+	return c.toUserFeature(ctx, *f, user)
+}
+
+func (c *ClientImpl) toUserFeature(ctx context.Context, f unleashapi.Feature, user *authclient.User) UserFeature {
+	userEnabled, enablementLevel := c.isFeatureEnabled(ctx, f, user)
+	return UserFeature{
+		Name:            f.Name,
+		Description:     f.Description,
+		Enabled:         f.Enabled,
+		UserEnabled:     userEnabled,
+		EnablementLevel: enablementLevel,
+	}
 }
 
 // GetFeaturesByName returns the features from their names
-func (c *ClientImpl) GetFeaturesByName(ctx context.Context, names []string) []unleashapi.Feature {
-	result := make([]unleashapi.Feature, 0)
+func (c *ClientImpl) GetFeaturesByName(ctx context.Context, names []string, user *authclient.User) []UserFeature {
+	result := make([]UserFeature, 0)
 	if !c.clientListener.ready {
 		log.Error(ctx, map[string]interface{}{"error": "client is not ready"}, "unable to list features by name")
 		return result
 	}
 	for _, name := range names {
-		f := c.UnleashClient.GetFeature(name)
-		if f != nil {
-			result = append(result, *f)
+		f := c.GetFeature(ctx, name, user)
+		if f != ZeroUserFeature {
+			result = append(result, f)
 		}
 	}
 	return result
 }
 
 // GetFeaturesByPattern returns the features whose ID matches the given pattern
-func (c *ClientImpl) GetFeaturesByPattern(ctx context.Context, pattern string) []unleashapi.Feature {
-	result := make([]unleashapi.Feature, 0)
+func (c *ClientImpl) GetFeaturesByPattern(ctx context.Context, pattern string, user *authclient.User) []UserFeature {
+	result := make([]UserFeature, 0)
 	if !c.clientListener.ready {
 		log.Error(ctx, map[string]interface{}{"error": "client is not ready"}, "unable to list features by pattern")
 		return result
 	}
-	return c.UnleashClient.GetFeaturesByPattern(fmt.Sprintf("^%[1]s$|^%[1]s\\.(.*)", pattern))
+	feats := c.UnleashClient.GetFeaturesByPattern(fmt.Sprintf("^%[1]s$|^%[1]s\\.(.*)", pattern))
+	for _, f := range feats {
+		result = append(result, c.toUserFeature(ctx, f, user))
+	}
+	return result
 }
 
-// IsFeatureEnabled returns a boolean to specify whether on feature is enabled for a given user level
-func (c *ClientImpl) IsFeatureEnabled(ctx context.Context, feature unleashapi.Feature, user *authclient.User) (bool, string) {
+// isFeatureEnabled returns a boolean to specify whether on feature is enabled for a given user level
+func (c *ClientImpl) isFeatureEnabled(ctx context.Context, feature unleashapi.Feature, user *authclient.User) (bool, string) {
 	if !c.clientListener.ready {
 		log.Warn(ctx, nil, "unable to check if feature is enabled due to: client is not ready")
 		return false, UnknownLevel

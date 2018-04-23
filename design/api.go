@@ -32,6 +32,12 @@ var _ = a.API("feature", func() {
 		a.Attribute("meta", a.HashOf(d.String, d.Any))
 	})
 
+	a.Trait("conditional", func() {
+		a.Headers(func() {
+			a.Header("If-None-Match", d.String)
+		})
+	})
+
 	a.Trait("jsonapi-media-type", func() {
 		a.ContentType("application/vnd.api+json")
 	})

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	unleashapi "github.com/Unleash/unleash-client-go/api"
 	jwt "github.com/dgrijalva/jwt-go"
 	jwtrequest "github.com/dgrijalva/jwt-go/request"
 	"github.com/dnaeon/go-vcr/cassette"
@@ -29,99 +28,64 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var disabledFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature, devFeature, fooGroupFeature, foobarFeature unleashapi.Feature
+var disabledFeature, singleStrategyFeature, multiStrategiesFeature, releasedFeature, devFeature, fooGroupFeature, foobarFeature featuretoggles.UserFeature
 
 func init() {
 	// features
-	disabledFeature = unleashapi.Feature{
-		Name:        "foo.disabledFeature",
-		Description: "Disabled feature",
-		Enabled:     false,
-		Strategies:  []unleashapi.Strategy{},
+	disabledFeature = featuretoggles.UserFeature{
+		Name:            "foo.disabledFeature",
+		Description:     "Disabled feature",
+		Enabled:         false,
+		EnablementLevel: featuretoggles.UnknownLevel,
+		UserEnabled:     false,
 	}
 
-	singleStrategyFeature = unleashapi.Feature{
-		Name:        "foo.singleStrategyFeature",
-		Description: "Feature with single strategy",
-		Enabled:     true,
-		Strategies: []unleashapi.Strategy{
-			{
-				Name: featuretoggles.EnableByLevelStrategyName,
-				Parameters: map[string]interface{}{
-					featuretoggles.LevelParameter: featuretoggles.InternalLevel,
-				},
-			},
-		},
+	singleStrategyFeature = featuretoggles.UserFeature{
+		Name:            "foo.singleStrategyFeature",
+		Description:     "Feature with single strategy",
+		Enabled:         true,
+		EnablementLevel: featuretoggles.UnknownLevel,
+		UserEnabled:     false,
 	}
 
-	multiStrategiesFeature = unleashapi.Feature{
-		Name:        "foo.multiStrategiesFeature",
-		Description: "Feature with multiple strategies",
-		Enabled:     true,
-		Strategies: []unleashapi.Strategy{
-			{
-				Name: featuretoggles.EnableByLevelStrategyName,
-				Parameters: map[string]interface{}{
-					featuretoggles.LevelParameter: featuretoggles.InternalLevel,
-				},
-			},
-			{
-				Name: featuretoggles.EnableByLevelStrategyName,
-				Parameters: map[string]interface{}{
-					featuretoggles.LevelParameter: featuretoggles.ExperimentalLevel,
-				},
-			},
-			{
-				Name: featuretoggles.EnableByLevelStrategyName,
-				Parameters: map[string]interface{}{
-					featuretoggles.LevelParameter: featuretoggles.BetaLevel,
-				},
-			},
-		},
+	multiStrategiesFeature = featuretoggles.UserFeature{
+		Name:            "foo.multiStrategiesFeature",
+		Description:     "Feature with multiple strategies",
+		Enabled:         true,
+		EnablementLevel: featuretoggles.BetaLevel,
+		UserEnabled:     true,
 	}
 
-	releasedFeature = unleashapi.Feature{
-		Name:        "bar.releasedFeature",
-		Description: "Feature released",
-		Enabled:     true,
-		Strategies: []unleashapi.Strategy{
-			{
-				Name: featuretoggles.EnableByLevelStrategyName,
-				Parameters: map[string]interface{}{
-					featuretoggles.LevelParameter: featuretoggles.ReleasedLevel,
-				},
-			},
-		},
+	releasedFeature = featuretoggles.UserFeature{
+		Name:            "bar.releasedFeature",
+		Description:     "Feature released",
+		Enabled:         true,
+		EnablementLevel: featuretoggles.ReleasedLevel,
+		UserEnabled:     true,
 	}
 
-	devFeature = unleashapi.Feature{
-		Name:        "wip.devFeature",
-		Description: "WIP Feature",
-		Enabled:     true,
-		Strategies: []unleashapi.Strategy{
-			{
-				Name: featuretoggles.EnableByEmailsStrategyName,
-				Parameters: map[string]interface{}{
-					featuretoggles.EmailsParameter: []string{
-						"foo@foo.com",
-					},
-				},
-			},
-		},
+	devFeature = featuretoggles.UserFeature{
+		Name:            "wip.devFeature",
+		Description:     "WIP Feature",
+		Enabled:         true,
+		UserEnabled:     true,
+		EnablementLevel: featuretoggles.UnknownLevel,
 	}
 
-	fooGroupFeature = unleashapi.Feature{
-		Name:        "foo",
-		Description: "foo",
-		Enabled:     false,
-		Strategies:  []unleashapi.Strategy{},
+	fooGroupFeature = featuretoggles.UserFeature{
+		Name:            "foo",
+		Description:     "foo",
+		Enabled:         false,
+		UserEnabled:     false,
+		EnablementLevel: featuretoggles.UnknownLevel,
 	}
 
-	foobarFeature = unleashapi.Feature{
-		Name:        "foobar",
-		Description: "foo bar",
-		Enabled:     false,
-		Strategies:  []unleashapi.Strategy{},
+	foobarFeature = featuretoggles.UserFeature{
+		Name:            "foobar",
+		Description:     "foo bar",
+		Enabled:         false,
+		UserEnabled:     false,
+		EnablementLevel: featuretoggles.UnknownLevel,
 	}
 
 }
@@ -136,6 +100,10 @@ func (c *TestFeatureControllerConfig) GetAuthServiceURL() string {
 
 func (c *TestFeatureControllerConfig) GetTogglesURL() string {
 	return ""
+}
+
+func (c *TestFeatureControllerConfig) GetFeaturesCacheControl() string {
+	return "private,max-age=120"
 }
 
 func newFeaturesController(t *testing.T, tokenParser authtoken.Parser, httpClient *http.Client, client featuretoggles.Client) (*goa.Service, *controller.FeaturesController) {
@@ -153,58 +121,34 @@ func newFeaturesController(t *testing.T, tokenParser authtoken.Parser, httpClien
 
 func newClientMock(t *testing.T) *testfeaturetoggles.ClientMock {
 	mockClient := testfeaturetoggles.NewClientMock(t)
-	mockClient.GetFeatureFunc = func(ctx context.Context, name string) *unleashapi.Feature {
+	mockClient.GetFeatureFunc = func(ctx context.Context, name string, user *authclient.User) featuretoggles.UserFeature {
 		switch name {
 		case disabledFeature.Name:
-			return &disabledFeature
+			return disabledFeature
 		case singleStrategyFeature.Name:
-			return &singleStrategyFeature
+			return singleStrategyFeature
 		case multiStrategiesFeature.Name:
-			return &multiStrategiesFeature
+			return multiStrategiesFeature
 		case releasedFeature.Name:
-			return &releasedFeature
+			return releasedFeature
 		case devFeature.Name:
-			return &devFeature
+			return devFeature
 		default:
-			return nil
+			return featuretoggles.ZeroUserFeature
 		}
 	}
-	mockClient.IsFeatureEnabledFunc = func(ctx context.Context, feature unleashapi.Feature, user *authclient.User) (bool, string) {
-		log.Debug(ctx, map[string]interface{}{"user": user, "feature_name": feature.Name}, "checking if feature is enabled... (mock)")
-		if reflect.DeepEqual(feature, disabledFeature) {
-			return false, featuretoggles.UnknownLevel // disabled
-		}
-		if reflect.DeepEqual(feature, singleStrategyFeature) {
-			if user != nil && user.Data.Attributes.FeatureLevel != nil && *user.Data.Attributes.FeatureLevel == featuretoggles.InternalLevel {
-				return true, featuretoggles.InternalLevel // internal level
-			}
-			return false, featuretoggles.UnknownLevel // internal level
-		}
-		if reflect.DeepEqual(feature, multiStrategiesFeature) {
-			if user == nil {
-				return false, featuretoggles.BetaLevel
-			}
-			return true, featuretoggles.BetaLevel // assume user is beta or lower
-		}
-		if reflect.DeepEqual(feature, releasedFeature) {
-			return true, featuretoggles.ReleasedLevel
-		}
-		// if reflect.DeepEqual(feature, devFeature) {
-		// 	// check the email address of the user in the ctx, if available
-		// }
-		return false, featuretoggles.UnknownLevel
-	}
-	mockClient.GetFeaturesByNameFunc = func(ctx context.Context, names []string) []unleashapi.Feature {
+
+	mockClient.GetFeaturesByNameFunc = func(ctx context.Context, names []string, user *authclient.User) []featuretoggles.UserFeature {
 		if reflect.DeepEqual(names, []string{disabledFeature.Name, multiStrategiesFeature.Name}) {
-			return []unleashapi.Feature{disabledFeature, multiStrategiesFeature}
+			return []featuretoggles.UserFeature{disabledFeature, multiStrategiesFeature}
 		} else if reflect.DeepEqual(names, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name}) {
-			return []unleashapi.Feature{releasedFeature, disabledFeature, multiStrategiesFeature}
+			return []featuretoggles.UserFeature{releasedFeature, disabledFeature, multiStrategiesFeature}
 		}
 		return nil
 	}
-	mockClient.GetFeaturesByPatternFunc = func(ctx context.Context, pattern string) []unleashapi.Feature {
+	mockClient.GetFeaturesByPatternFunc = func(ctx context.Context, pattern string, user *authclient.User) []featuretoggles.UserFeature {
 		if pattern == "foo" {
-			return []unleashapi.Feature{
+			return []featuretoggles.UserFeature{
 				disabledFeature,
 				singleStrategyFeature,
 				multiStrategiesFeature,
@@ -212,11 +156,11 @@ func newClientMock(t *testing.T) *testfeaturetoggles.ClientMock {
 			}
 		}
 		if pattern == "bar" {
-			return []unleashapi.Feature{
+			return []featuretoggles.UserFeature{
 				releasedFeature,
 			}
 		}
-		return []unleashapi.Feature{}
+		return []featuretoggles.UserFeature{}
 	}
 	return mockClient
 }
@@ -246,13 +190,13 @@ func TestShowFeatures(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, disabledFeature.Name)
+			_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, disabledFeature.Name, nil)
 			// then
 			require.NotNil(t, appFeature)
-			expectedFeatureData := &app.Feature{
+			expectedFeatureData := &app.UserFeature{
 				ID:   disabledFeature.Name,
 				Type: "features",
-				Attributes: &app.FeatureAttributes{
+				Attributes: &app.UserFeatureAttributes{
 					Description:     disabledFeature.Description,
 					Enabled:         false,
 					UserEnabled:     false,
@@ -266,13 +210,13 @@ func TestShowFeatures(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_no_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, singleStrategyFeature.Name)
+			_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, singleStrategyFeature.Name, nil)
 			// then
 			require.NotNil(t, appFeature)
-			expectedFeatureData := &app.Feature{
+			expectedFeatureData := &app.UserFeature{
 				ID:   singleStrategyFeature.Name,
 				Type: "features",
-				Attributes: &app.FeatureAttributes{
+				Attributes: &app.UserFeatureAttributes{
 					Description:     singleStrategyFeature.Description,
 					Enabled:         true,
 					UserEnabled:     false,
@@ -295,14 +239,14 @@ func TestShowFeatures(t *testing.T) {
 					ctx, err := createValidContext("../test/private_key.pem", "user_experimental_level", time.Now().Add(1*time.Hour))
 					require.NoError(t, err)
 					// when
-					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, multiStrategiesFeature.Name)
+					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, multiStrategiesFeature.Name, nil)
 					// then
 					require.NotNil(t, appFeature)
 					enablementLevel := featuretoggles.BetaLevel
-					expectedFeatureData := &app.Feature{
+					expectedFeatureData := &app.UserFeature{
 						ID:   multiStrategiesFeature.Name,
 						Type: "features",
-						Attributes: &app.FeatureAttributes{
+						Attributes: &app.UserFeatureAttributes{
 							Description:     multiStrategiesFeature.Description,
 							Enabled:         true,
 							UserEnabled:     true,
@@ -321,14 +265,14 @@ func TestShowFeatures(t *testing.T) {
 				ctx, err := createValidContext("../test/private_key.pem", "user_no_level", time.Now().Add(1*time.Hour))
 				require.NoError(t, err)
 				// when
-				_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
+				_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name, nil)
 				// then
 				require.NotNil(t, appFeature)
 				enablementLevel := featuretoggles.ReleasedLevel
-				expectedFeatureData := &app.Feature{
+				expectedFeatureData := &app.UserFeature{
 					ID:   releasedFeature.Name,
 					Type: "features",
-					Attributes: &app.FeatureAttributes{
+					Attributes: &app.UserFeatureAttributes{
 						Description:     releasedFeature.Description,
 						Enabled:         true,
 						UserEnabled:     true,
@@ -343,14 +287,14 @@ func TestShowFeatures(t *testing.T) {
 				ctx, err := createValidContext("../test/private_key.pem", "user_empty_level", time.Now().Add(1*time.Hour))
 				require.NoError(t, err)
 				// when
-				_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
+				_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name, nil)
 				// then
 				require.NotNil(t, appFeature)
 				enablementLevel := featuretoggles.ReleasedLevel
-				expectedFeatureData := &app.Feature{
+				expectedFeatureData := &app.UserFeature{
 					ID:   releasedFeature.Name,
 					Type: "features",
-					Attributes: &app.FeatureAttributes{
+					Attributes: &app.UserFeatureAttributes{
 						Description:     releasedFeature.Description,
 						Enabled:         true,
 						UserEnabled:     true,
@@ -367,14 +311,14 @@ func TestShowFeatures(t *testing.T) {
 					ctx, err := createValidContext("../test/private_key.pem", "user_experimental_level", time.Now().Add(1*time.Hour))
 					require.NoError(t, err)
 					// when
-					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
+					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name, nil)
 					// then
 					require.NotNil(t, appFeature)
 					enablementLevel := featuretoggles.ReleasedLevel
-					expectedFeatureData := &app.Feature{
+					expectedFeatureData := &app.UserFeature{
 						ID:   releasedFeature.Name,
 						Type: "features",
-						Attributes: &app.FeatureAttributes{
+						Attributes: &app.UserFeatureAttributes{
 							Description:     releasedFeature.Description,
 							Enabled:         true,
 							UserEnabled:     true,
@@ -389,14 +333,14 @@ func TestShowFeatures(t *testing.T) {
 					ctx, err := createValidContext("../test/private_key.pem", "user_released_level", time.Now().Add(1*time.Hour))
 					require.NoError(t, err)
 					// when
-					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name)
+					_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, releasedFeature.Name, nil)
 					// then
 					require.NotNil(t, appFeature)
 					enablementLevel := featuretoggles.ReleasedLevel
-					expectedFeatureData := &app.Feature{
+					expectedFeatureData := &app.UserFeature{
 						ID:   releasedFeature.Name,
 						Type: "features",
-						Attributes: &app.FeatureAttributes{
+						Attributes: &app.UserFeatureAttributes{
 							Description:     releasedFeature.Description,
 							Enabled:         true,
 							UserEnabled:     true,
@@ -410,18 +354,40 @@ func TestShowFeatures(t *testing.T) {
 		})
 	})
 
+	t.Run("no change", func(t *testing.T) {
+		// given
+		ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+		require.NoError(t, err)
+		res, _ := test.ShowFeaturesOK(t, ctx, svc, ctrl, disabledFeature.Name, nil)
+		require.NotEmpty(t, res.Header()[app.ETag])
+		etag := res.Header()[app.ETag][0]
+		// when/then
+		test.ShowFeaturesNotModified(t, ctx, svc, ctrl, disabledFeature.Name, &etag)
+	})
+
+	t.Run("expired ETag", func(t *testing.T) {
+		// given
+		ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+		require.NoError(t, err)
+		etag := "foo"
+		// when
+		_, features := test.ShowFeaturesOK(t, ctx, svc, ctrl, disabledFeature.Name, &etag)
+		//then
+		assert.NotEmpty(t, features)
+	})
+
 	t.Run("unknown feature", func(t *testing.T) {
 		// given
 		ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 		require.NoError(t, err)
 		// when
-		_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, "UnknownFeature")
+		_, appFeature := test.ShowFeaturesOK(t, ctx, svc, ctrl, "UnknownFeature", nil)
 		// then
 		require.NotNil(t, appFeature)
-		expectedFeatureData := &app.Feature{
+		expectedFeatureData := &app.UserFeature{
 			ID:   "UnknownFeature",
 			Type: "features",
-			Attributes: &app.FeatureAttributes{
+			Attributes: &app.UserFeatureAttributes{
 				Description: "unknown feature",
 				Enabled:     false,
 				UserEnabled: false,
@@ -437,7 +403,7 @@ func TestShowFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key2.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			// when/then
-			test.ShowFeaturesUnauthorized(t, ctx, svc, ctrl, releasedFeature.Name)
+			test.ShowFeaturesUnauthorized(t, ctx, svc, ctrl, releasedFeature.Name, nil)
 		})
 
 		t.Run("expired token", func(t *testing.T) {
@@ -445,7 +411,7 @@ func TestShowFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(-1*time.Hour))
 			require.NoError(t, err)
 			// when/then
-			test.ShowFeaturesUnauthorized(t, ctx, svc, ctrl, releasedFeature.Name)
+			test.ShowFeaturesUnauthorized(t, ctx, svc, ctrl, releasedFeature.Name, nil)
 		})
 	})
 }
@@ -477,14 +443,14 @@ func TestListFeatures(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name})
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, nil)
 			// then
 			betaLevel := featuretoggles.BetaLevel
-			expectedData := []*app.Feature{
+			expectedData := []*app.UserFeature{
 				{
 					ID:   disabledFeature.Name,
 					Type: "features",
-					Attributes: &app.FeatureAttributes{
+					Attributes: &app.UserFeatureAttributes{
 						Description:     disabledFeature.Description,
 						Enabled:         false,
 						UserEnabled:     false,
@@ -494,7 +460,7 @@ func TestListFeatures(t *testing.T) {
 				{
 					ID:   multiStrategiesFeature.Name,
 					Type: "features",
-					Attributes: &app.FeatureAttributes{
+					Attributes: &app.UserFeatureAttributes{
 						Description:     multiStrategiesFeature.Description,
 						Enabled:         true,
 						UserEnabled:     true,
@@ -503,66 +469,40 @@ func TestListFeatures(t *testing.T) {
 				},
 			}
 			assert.Equal(t, expectedData, featuresList.Data)
+		})
+
+		t.Run("no change", func(t *testing.T) {
+			// given
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+			require.NoError(t, err)
+			res, _ := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, nil)
+			require.NotEmpty(t, res.Header()[app.ETag])
+			etag := res.Header()[app.ETag][0]
+			// when/then
+			test.ListFeaturesNotModified(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, &etag)
+		})
+
+		t.Run("expired ETag", func(t *testing.T) {
+			// given
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+			require.NoError(t, err)
+			etag := "foo"
+			// when
+			_, features := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, &etag)
+			//then
+			assert.NotEmpty(t, features)
 		})
 
 		t.Run("no feature found", func(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"})
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
 			// then
-			expectedData := []*app.Feature{}
+			expectedData := []*app.UserFeature{}
 			assert.Equal(t, expectedData, featuresList.Data)
 		})
 
-		t.Run("no user provided", func(t *testing.T) {
-			// when
-			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"})
-			// then
-			expectedData := []*app.Feature{}
-			assert.Equal(t, expectedData, featuresList.Data)
-		})
-
-		t.Run("no user provided only released features matches", func(t *testing.T) {
-			// when
-			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, nil, []string{releasedFeature.Name, disabledFeature.Name, multiStrategiesFeature.Name})
-			// then
-			releasedLevel := featuretoggles.ReleasedLevel
-			betaLevel := featuretoggles.BetaLevel
-			expectedData := []*app.Feature{
-				{
-					ID:   releasedFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     releasedFeature.Description,
-						Enabled:         true,
-						UserEnabled:     true,
-						EnablementLevel: &releasedLevel,
-					},
-				},
-				{
-					ID:   disabledFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     disabledFeature.Description,
-						Enabled:         false,
-						UserEnabled:     false,
-						EnablementLevel: nil,
-					},
-				},
-				{
-					ID:   multiStrategiesFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     multiStrategiesFeature.Description,
-						Enabled:         true,
-						UserEnabled:     false,
-						EnablementLevel: &betaLevel,
-					},
-				},
-			}
-			assert.Equal(t, expectedData, featuresList.Data)
-		})
 	})
 
 	t.Run("list by pattern", func(t *testing.T) {
@@ -570,18 +510,28 @@ func TestListFeatures(t *testing.T) {
 		// given
 		pattern := "foo"
 
-		t.Run("2 matches", func(t *testing.T) {
+		t.Run("4 matches", func(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil)
 			// then
 			experimentalLevel := featuretoggles.BetaLevel
-			expectedData := []*app.Feature{
+			expectedData := []*app.UserFeature{ // features are sorted by ID
+				{
+					ID:   fooGroupFeature.Name,
+					Type: "features",
+					Attributes: &app.UserFeatureAttributes{
+						Description:     fooGroupFeature.Description,
+						Enabled:         false,
+						UserEnabled:     false,
+						EnablementLevel: nil,
+					},
+				},
 				{
 					ID:   disabledFeature.Name,
 					Type: "features",
-					Attributes: &app.FeatureAttributes{
+					Attributes: &app.UserFeatureAttributes{
 						Description:     disabledFeature.Description,
 						Enabled:         false,
 						UserEnabled:     false,
@@ -589,19 +539,9 @@ func TestListFeatures(t *testing.T) {
 					},
 				},
 				{
-					ID:   singleStrategyFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     singleStrategyFeature.Description,
-						Enabled:         true,
-						UserEnabled:     false,
-						EnablementLevel: nil,
-					},
-				},
-				{
 					ID:   multiStrategiesFeature.Name,
 					Type: "features",
-					Attributes: &app.FeatureAttributes{
+					Attributes: &app.UserFeatureAttributes{
 						Description:     multiStrategiesFeature.Description,
 						Enabled:         true,
 						UserEnabled:     true,
@@ -609,17 +549,39 @@ func TestListFeatures(t *testing.T) {
 					},
 				},
 				{
-					ID:   fooGroupFeature.Name,
+					ID:   singleStrategyFeature.Name,
 					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     fooGroupFeature.Description,
-						Enabled:         false,
+					Attributes: &app.UserFeatureAttributes{
+						Description:     singleStrategyFeature.Description,
+						Enabled:         true,
 						UserEnabled:     false,
 						EnablementLevel: nil,
 					},
 				},
 			}
 			assert.Equal(t, expectedData, featuresList.Data)
+		})
+
+		t.Run("no change", func(t *testing.T) {
+			// given
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+			require.NoError(t, err)
+			res, _ := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil)
+			require.NotEmpty(t, res.Header()[app.ETag])
+			etag := res.Header()[app.ETag][0]
+			// when/then
+			test.ListFeaturesNotModified(t, ctx, svc, ctrl, &pattern, nil, &etag)
+		})
+
+		t.Run("expired ETag", func(t *testing.T) {
+			// given
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+			require.NoError(t, err)
+			etag := "foo"
+			// when
+			_, features := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, &etag)
+			//then
+			assert.NotEmpty(t, features)
 		})
 
 		t.Run("no feature found", func(t *testing.T) {
@@ -627,112 +589,12 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			pattern := "unknown"
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil)
 			// then
-			expectedData := []*app.Feature{}
+			expectedData := []*app.UserFeature{}
 			assert.Equal(t, expectedData, featuresList.Data)
 		})
 
-		t.Run("no user provided", func(t *testing.T) {
-			// when
-			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, &pattern, nil)
-			// then
-			// then
-			betaLevel := featuretoggles.BetaLevel
-			expectedData := []*app.Feature{
-				{
-					ID:   disabledFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     disabledFeature.Description,
-						Enabled:         false,
-						UserEnabled:     false,
-						EnablementLevel: nil,
-					},
-				},
-				{
-					ID:   singleStrategyFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     singleStrategyFeature.Description,
-						Enabled:         true,
-						UserEnabled:     false,
-						EnablementLevel: nil,
-					},
-				},
-				{
-					ID:   multiStrategiesFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     multiStrategiesFeature.Description,
-						Enabled:         true,
-						UserEnabled:     false,
-						EnablementLevel: &betaLevel,
-					},
-				},
-				{
-					ID:   fooGroupFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     fooGroupFeature.Description,
-						Enabled:         false,
-						UserEnabled:     false,
-						EnablementLevel: nil,
-					},
-				},
-			}
-			assert.Equal(t, expectedData, featuresList.Data)
-		})
-
-		t.Run("no user provided only released features matches", func(t *testing.T) {
-			// when
-			_, featuresList := test.ListFeaturesOK(t, context.Background(), svc, ctrl, &pattern, nil)
-			// then
-			betaLevel := featuretoggles.BetaLevel
-			expectedData := []*app.Feature{
-				{
-					ID:   disabledFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     disabledFeature.Description,
-						Enabled:         false,
-						UserEnabled:     false,
-						EnablementLevel: nil,
-					},
-				},
-				{
-					ID:   singleStrategyFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     singleStrategyFeature.Description,
-						Enabled:         true,
-						UserEnabled:     false,
-						EnablementLevel: nil,
-					},
-				},
-				{
-					ID:   multiStrategiesFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     multiStrategiesFeature.Description,
-						Enabled:         true,
-						UserEnabled:     false,
-						EnablementLevel: &betaLevel,
-					},
-				},
-				{
-					ID:   fooGroupFeature.Name,
-					Type: "features",
-					Attributes: &app.FeatureAttributes{
-						Description:     fooGroupFeature.Description,
-						Enabled:         false,
-						UserEnabled:     false,
-						EnablementLevel: nil,
-					},
-				},
-			}
-			assert.Equal(t, expectedData, featuresList.Data)
-		})
 	})
 
 	t.Run("invalid", func(t *testing.T) {
@@ -742,7 +604,7 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key2.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			// when/then
-			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"})
+			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
 		})
 
 		t.Run("expired token", func(t *testing.T) {
@@ -750,7 +612,17 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(-1*time.Hour))
 			require.NoError(t, err)
 			// when/then
-			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"})
+			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
+		})
+
+		t.Run("missing query param", func(t *testing.T) {
+			// given
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+			require.NoError(t, err)
+			// when
+			_, result := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, nil, nil)
+			// then
+			require.Empty(t, result.Data)
 		})
 	})
 
