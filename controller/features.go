@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"net/http"
+	"sort"
 
 	"github.com/fabric8-services/fabric8-auth/goasupport"
 	"github.com/fabric8-services/fabric8-auth/log"
@@ -109,7 +110,9 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 			Data: []*app.UserFeature{},
 		})
 	}
-
+	// sort features by name to make sure that the same result list is returned between 2 calls (assuming nothing changed in the settings)
+	// so that ETag comparison works
+	sort.Sort(featuretoggles.ByName(features))
 	return ctx.ConditionalEntities(features, c.config.GetFeaturesCacheControl, func() error {
 		appFeatures := c.convertFeatures(ctx, features)
 		return ctx.OK(appFeatures)

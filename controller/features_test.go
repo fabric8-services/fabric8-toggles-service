@@ -510,30 +510,30 @@ func TestListFeatures(t *testing.T) {
 		// given
 		pattern := "foo"
 
-		t.Run("2 matches", func(t *testing.T) {
+		t.Run("4 matches", func(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil)
 			// then
 			experimentalLevel := featuretoggles.BetaLevel
-			expectedData := []*app.UserFeature{
+			expectedData := []*app.UserFeature{ // features are sorted by ID
 				{
-					ID:   disabledFeature.Name,
+					ID:   fooGroupFeature.Name,
 					Type: "features",
 					Attributes: &app.UserFeatureAttributes{
-						Description:     disabledFeature.Description,
+						Description:     fooGroupFeature.Description,
 						Enabled:         false,
 						UserEnabled:     false,
 						EnablementLevel: nil,
 					},
 				},
 				{
-					ID:   singleStrategyFeature.Name,
+					ID:   disabledFeature.Name,
 					Type: "features",
 					Attributes: &app.UserFeatureAttributes{
-						Description:     singleStrategyFeature.Description,
-						Enabled:         true,
+						Description:     disabledFeature.Description,
+						Enabled:         false,
 						UserEnabled:     false,
 						EnablementLevel: nil,
 					},
@@ -549,11 +549,11 @@ func TestListFeatures(t *testing.T) {
 					},
 				},
 				{
-					ID:   fooGroupFeature.Name,
+					ID:   singleStrategyFeature.Name,
 					Type: "features",
 					Attributes: &app.UserFeatureAttributes{
-						Description:     fooGroupFeature.Description,
-						Enabled:         false,
+						Description:     singleStrategyFeature.Description,
+						Enabled:         true,
 						UserEnabled:     false,
 						EnablementLevel: nil,
 					},
