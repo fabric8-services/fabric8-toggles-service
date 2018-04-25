@@ -11,7 +11,7 @@ type UserFeature struct {
 
 // GetETagData returns the field values to use to generate the ETag
 func (f UserFeature) GetETagData() []interface{} {
-	return []interface{}{f.Name, f.Enabled, f.EnablementLevel, f.UserEnabled}
+	return []interface{}{f.Name, f.Description, f.Enabled, f.EnablementLevel, f.UserEnabled}
 }
 
 // ZeroUserFeature to check if a feature is empty
