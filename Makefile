@@ -2,7 +2,15 @@ PROJECT_NAME = fabric8-toggles-service
 REGISTRY_URI = push.registry.devshift.net
 REGISTRY_NS = fabric8-services
 REGISTRY_IMAGE = ${PROJECT_NAME}
-REGISTRY_URL = ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}
+
+ifeq ($(TARGET),rhel)
+	REGISTRY_URL := ${REGISTRY_URI}/osio-prod/${REGISTRY_NS}/${REGISTRY_IMAGE}
+	DOCKERFILE := Dockerfile.rhel
+else
+	REGISTRY_URL := ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}
+	DOCKERFILE := Dockerfile
+endif
+
 PACKAGE_NAME := github.com/fabric8-services/${PROJECT_NAME}
 SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -type d \( -name vendor -o -name .glide \) -prune -o -name '*.go' -print)
@@ -63,20 +71,22 @@ build: deps generate $(BUILD_DIR) # Builds the Linux binary for the container im
 build-linux: deps generate $(BUILD_DIR) # Builds the Linux binary for the container image into $BUILD_DIR
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -v $(LDFLAGS) -o $(BUILD_DIR)/$(PROJECT_NAME)
 
+login:
+	$(call check_defined, REGISTRY_USER, "You need to pass the registry user via REGISTRY_USER.")
+	$(call check_defined, REGISTRY_PASSWORD, "You need to pass the registry password via REGISTRY_PASSWORD.")
+	docker login -u $(REGISTRY_USER) -p $(REGISTRY_PASSWORD) $(REGISTRY_URI)
+
 image: clean-artifacts build-linux
 	docker build -t $(REGISTRY_URL) \
 	  --build-arg BINARY=$(BUILD_DIR)/$(PROJECT_NAME) \
-	  -f Dockerfile .
+	  -f $(DOCKERFILE) .
 
 image-minishift: clean-artifacts build-linux
 	@eval $$(minishift docker-env) && docker build -t $(REGISTRY_URL) \
 	  --build-arg BINARY=$(BUILD_DIR)/$(PROJECT_NAME) \
-	  -f Dockerfile .
+	  -f $(DOCKERFILE) .
 
 push-openshift: image ## Pushes the container image to the OpenShift online registry
-	$(call check_defined, REGISTRY_USER, "You need to pass the registry user via REGISTRY_USER.")
-	$(call check_defined, REGISTRY_PASSWORD, "You need to pass the registry password via REGISTRY_PASSWORD.")
-	docker login -u $(REGISTRY_USER) -p $(REGISTRY_PASSWORD) $(REGISTRY_URI)
 	docker push $(REGISTRY_URL):latest
 	docker tag $(REGISTRY_URL):latest $(REGISTRY_URL):$(IMAGE_TAG)
 	docker push $(REGISTRY_URL):$(IMAGE_TAG)

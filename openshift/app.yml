@@ -31,7 +31,7 @@ objects:
               configMapKeyRef:
                 name: f8toggles-service
                 key: toggles.url
-          image: registry.devshift.net/fabric8-services/fabric8-toggles-service:${IMAGE_TAG}
+          image: ${IMAGE}:${IMAGE_TAG}
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3
@@ -86,5 +86,7 @@ objects:
     type: ClusterIP
     sessionAffinity: null
 parameters:
+- name: IMAGE
+  value: registry.devshift.net/fabric8-services/fabric8-toggles-service
 - name: IMAGE_TAG
   value: latest
