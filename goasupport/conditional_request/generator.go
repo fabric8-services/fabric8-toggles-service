@@ -367,6 +367,8 @@ func generateETagValue(data []interface{}, options ...interface{}) string {
 			if d != nil {
 				buffer.WriteString(d.String())
 			}
+		case bool:
+			buffer.WriteString(strconv.FormatBool(d))
 		default:
 			log.Logger().Errorln(fmt.Sprintf("Unexpected Etag fragment format: %v", reflect.TypeOf(d)))
 		}
