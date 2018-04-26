@@ -76,7 +76,7 @@ login:
 	$(call check_defined, REGISTRY_PASSWORD, "You need to pass the registry password via REGISTRY_PASSWORD.")
 	docker login -u $(REGISTRY_USER) -p $(REGISTRY_PASSWORD) $(REGISTRY_URI)
 
-image: clean-artifacts build-linux login
+image: clean-artifacts build-linux
 	docker build -t $(REGISTRY_URL) \
 	  --build-arg BINARY=$(BUILD_DIR)/$(PROJECT_NAME) \
 	  -f $(DOCKERFILE) .
