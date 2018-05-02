@@ -162,6 +162,12 @@ func newClientMock(t *testing.T) *testfeaturetoggles.ClientMock {
 		}
 		return []featuretoggles.UserFeature{}
 	}
+
+	mockClient.GetFeaturesByStrategyFunc = func(ctx context.Context, name string, user *authclient.User) []featuretoggles.UserFeature {
+		return []featuretoggles.UserFeature{
+			releasedFeature,
+		}
+	}
 	return mockClient
 }
 func TestShowFeatures(t *testing.T) {
@@ -503,6 +509,32 @@ func TestListFeatures(t *testing.T) {
 			assert.Equal(t, expectedData, featuresList.Data)
 		})
 
+	})
+
+	t.Run("list by strategy", func(t *testing.T) {
+
+		t.Run("1 match", func(t *testing.T) {
+			// when
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+			require.NoError(t, err)
+			strategy := "enableByLevel"
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, nil, &strategy, nil)
+			// then
+			level := featuretoggles.ReleasedLevel
+			expectedData := []*app.UserFeature{
+				{
+					ID:   releasedFeature.Name,
+					Type: "features",
+					Attributes: &app.UserFeatureAttributes{
+						Description:     "Feature released",
+						Enabled:         true,
+						EnablementLevel: &level,
+						UserEnabled:     true,
+					},
+				},
+			}
+			assert.Equal(t, expectedData, featuresList.Data)
+		})
 	})
 
 	t.Run("list by pattern", func(t *testing.T) {
