@@ -47,9 +47,10 @@ ignored = [
 
 [[constraint]]
   name = "github.com/Unleash/unleash-client-go"
-  source = "https://github.com/xcoulon/unleash-client-go"
-  revision = "1d017a5259cd8ebcaa17c83e7662a635383e555f"
-
+#  source = "https://github.com/xcoulon/unleash-client-go"
+#  revision = "1d017a5259cd8ebcaa17c83e7662a635383e555f"
+  source = "https://github.com/corinnekrych/unleash-client-go"
+  revision = "69296098d0a243327f8ab145a6f9a7ec7bee04ea"
 [[constraint]]
   name = "github.com/dgrijalva/jwt-go"
   version = "3.0.0"

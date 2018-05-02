@@ -11,8 +11,8 @@
     "internal/strategies",
     "strategy"
   ]
-  revision = "1d017a5259cd8ebcaa17c83e7662a635383e555f"
-  source = "https://github.com/xcoulon/unleash-client-go"
+  revision = "69296098d0a243327f8ab145a6f9a7ec7bee04ea"
+  source = "https://github.com/corinnekrych/unleash-client-go"
 
 [[projects]]
   name = "github.com/ajg/form"
@@ -340,6 +340,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "536cf4532afd56bc0a62072f9321c12b239d7ad6474f023a4516616df439184a"
+  inputs-digest = "5951d1c494b3aa560a9f4b3f64bdc9e5f6cf32f4254bb39600159362cda68c02"
   solver-name = "gps-cdcl"
   solver-version = 1
