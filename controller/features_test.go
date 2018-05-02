@@ -443,7 +443,7 @@ func TestListFeatures(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, nil)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, nil, nil)
 			// then
 			betaLevel := featuretoggles.BetaLevel
 			expectedData := []*app.UserFeature{
@@ -475,11 +475,11 @@ func TestListFeatures(t *testing.T) {
 			// given
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			res, _ := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, nil)
+			res, _ := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, nil, nil)
 			require.NotEmpty(t, res.Header()[app.ETag])
 			etag := res.Header()[app.ETag][0]
 			// when/then
-			test.ListFeaturesNotModified(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, &etag)
+			test.ListFeaturesNotModified(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, nil, &etag)
 		})
 
 		t.Run("expired ETag", func(t *testing.T) {
@@ -488,7 +488,7 @@ func TestListFeatures(t *testing.T) {
 			require.NoError(t, err)
 			etag := "foo"
 			// when
-			_, features := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, &etag)
+			_, features := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name},nil, &etag)
 			//then
 			assert.NotEmpty(t, features)
 		})
@@ -497,7 +497,7 @@ func TestListFeatures(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil, nil)
 			// then
 			expectedData := []*app.UserFeature{}
 			assert.Equal(t, expectedData, featuresList.Data)
@@ -514,7 +514,7 @@ func TestListFeatures(t *testing.T) {
 			// when
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil, nil)
 			// then
 			experimentalLevel := featuretoggles.BetaLevel
 			expectedData := []*app.UserFeature{ // features are sorted by ID
@@ -566,11 +566,11 @@ func TestListFeatures(t *testing.T) {
 			// given
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
-			res, _ := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil)
+			res, _ := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil, nil)
 			require.NotEmpty(t, res.Header()[app.ETag])
 			etag := res.Header()[app.ETag][0]
 			// when/then
-			test.ListFeaturesNotModified(t, ctx, svc, ctrl, &pattern, nil, &etag)
+			test.ListFeaturesNotModified(t, ctx, svc, ctrl, &pattern, nil, nil, &etag)
 		})
 
 		t.Run("expired ETag", func(t *testing.T) {
@@ -579,7 +579,7 @@ func TestListFeatures(t *testing.T) {
 			require.NoError(t, err)
 			etag := "foo"
 			// when
-			_, features := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, &etag)
+			_, features := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil, &etag)
 			//then
 			assert.NotEmpty(t, features)
 		})
@@ -589,7 +589,7 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			pattern := "unknown"
-			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil)
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, &pattern, nil, nil, nil)
 			// then
 			expectedData := []*app.UserFeature{}
 			assert.Equal(t, expectedData, featuresList.Data)
@@ -604,7 +604,7 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key2.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			// when/then
-			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
+			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil, nil)
 		})
 
 		t.Run("expired token", func(t *testing.T) {
@@ -612,7 +612,7 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(-1*time.Hour))
 			require.NoError(t, err)
 			// when/then
-			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil)
+			test.ListFeaturesUnauthorized(t, ctx, svc, ctrl, nil, []string{"FeatureX", "FeatureY", "FeatureZ"}, nil, nil)
 		})
 
 		t.Run("missing query param", func(t *testing.T) {
@@ -620,7 +620,7 @@ func TestListFeatures(t *testing.T) {
 			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
 			require.NoError(t, err)
 			// when
-			_, result := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, nil, nil)
+			_, result := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, nil, nil, nil)
 			// then
 			require.Empty(t, result.Data)
 		})
