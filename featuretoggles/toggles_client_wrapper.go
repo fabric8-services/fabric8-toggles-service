@@ -151,8 +151,6 @@ func (c *ClientImpl) GetFeaturesByStrategy(ctx context.Context, strategy string,
 	return result
 }
 
-
-
 // isFeatureEnabled returns a boolean to specify whether on feature is enabled for a given user level
 func (c *ClientImpl) isFeatureEnabled(ctx context.Context, feature unleashapi.Feature, user *authclient.User) (bool, string) {
 	if !c.clientListener.ready {

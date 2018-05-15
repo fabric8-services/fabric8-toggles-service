@@ -11,8 +11,8 @@
     "internal/strategies",
     "strategy"
   ]
-  revision = "69296098d0a243327f8ab145a6f9a7ec7bee04ea"
-  source = "https://github.com/corinnekrych/unleash-client-go"
+  revision = "d2686ca24a344473603043e3fe3f1c88e468b121"
+  source = "https://github.com/xcoulon/unleash-client-go"
 
 [[projects]]
   name = "github.com/ajg/form"

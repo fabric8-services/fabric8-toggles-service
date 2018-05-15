@@ -494,7 +494,7 @@ func TestListFeatures(t *testing.T) {
 			require.NoError(t, err)
 			etag := "foo"
 			// when
-			_, features := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name},nil, &etag)
+			_, features := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, []string{disabledFeature.Name, multiStrategiesFeature.Name}, nil, &etag)
 			//then
 			assert.NotEmpty(t, features)
 		})
