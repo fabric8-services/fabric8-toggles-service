@@ -209,7 +209,6 @@ func TestGetFeaturesByName(t *testing.T) {
 
 func TestGetFeaturesByPattern(t *testing.T) {
 	// given
-	// given
 	fooGroupFeature := unleashapi.Feature{
 		Name:    "foogroup",
 		Enabled: true,
@@ -275,5 +274,74 @@ func TestGetFeaturesByPattern(t *testing.T) {
 		f := ft.GetFeaturesByPattern(context.Background(), "fooGroup", user)
 		// then
 		require.Empty(t, f)
+	})
+}
+
+func TestGetFeaturesByStrategy(t *testing.T) {
+	// given
+	feat1 := unleashapi.Feature{
+		Name:    "feat1",
+		Enabled: true,
+		Strategies: []unleashapi.Strategy{
+			{
+				Name: featuretoggles.EnableByLevelStrategyName,
+				Parameters: map[string]interface{}{
+					featuretoggles.LevelParameter: featuretoggles.BetaLevel,
+				},
+			},
+		},
+	}
+	feat2 := unleashapi.Feature{
+		Name:    "feat2",
+		Enabled: false,
+		Strategies: []unleashapi.Strategy{
+			{
+				Name: featuretoggles.EnableByLevelStrategyName,
+				Parameters: map[string]interface{}{
+					featuretoggles.LevelParameter: featuretoggles.BetaLevel,
+				},
+			},
+		},
+	}
+	mockUnleashClient := testfeaturetoggles.NewUnleashClientMock(t)
+	mockUnleashClient.GetFeaturesByStrategyFunc = func(name string) []unleashapi.Feature {
+		return []unleashapi.Feature{feat1, feat2}
+	}
+	mockUnleashClient.IsEnabledFunc = func(feature string, options ...unleash.FeatureOption) (enabled bool) {
+		// force client to return `true` when the feature to check is `fooFeature`
+		return feature == feat1.Name
+	}
+	betaLevel := featuretoggles.BetaLevel
+	user := &authclient.User{
+		Data: &authclient.UserData{
+			Attributes: &authclient.UserDataAttributes{
+				FeatureLevel: &betaLevel,
+			},
+		},
+	}
+
+	t.Run("2 matches", func(t *testing.T) {
+		// given
+		ft := featuretoggles.NewClientWithState(mockUnleashClient, true)
+		// when
+		f := ft.GetFeaturesByStrategy(context.Background(), "enableByLevel", user)
+		// then
+		require.Len(t, f, 2)
+		assert.ElementsMatch(t, f, []featuretoggles.UserFeature{
+			{
+				Name:            feat1.Name,
+				Description:     feat1.Description,
+				Enabled:         feat1.Enabled,
+				EnablementLevel: featuretoggles.BetaLevel,
+				UserEnabled:     true,
+			},
+			{
+				Name:            feat2.Name,
+				Description:     feat2.Description,
+				Enabled:         feat2.Enabled,
+				EnablementLevel: featuretoggles.UnknownLevel,
+				UserEnabled:     false,
+			},
+		})
 	})
 }
