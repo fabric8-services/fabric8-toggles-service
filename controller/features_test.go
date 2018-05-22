@@ -164,9 +164,12 @@ func newClientMock(t *testing.T) *testfeaturetoggles.ClientMock {
 	}
 
 	mockClient.GetFeaturesByStrategyFunc = func(ctx context.Context, name string, user *authclient.User) []featuretoggles.UserFeature {
-		return []featuretoggles.UserFeature{
-			releasedFeature,
+		if name == "enableByLevel" {
+			return []featuretoggles.UserFeature{
+				releasedFeature,
+			}
 		}
+		return []featuretoggles.UserFeature{}
 	}
 	return mockClient
 }
@@ -533,6 +536,16 @@ func TestListFeatures(t *testing.T) {
 					},
 				},
 			}
+			assert.Equal(t, expectedData, featuresList.Data)
+		})
+		t.Run("No match", func(t *testing.T) {
+			// when
+			ctx, err := createValidContext("../test/private_key.pem", "user_beta_level", time.Now().Add(1*time.Hour))
+			require.NoError(t, err)
+			strategy := "anotherStrategyWithoutAnyFeature"
+			_, featuresList := test.ListFeaturesOK(t, ctx, svc, ctrl, nil, nil, &strategy, nil)
+			// then
+			expectedData := []*app.UserFeature{}
 			assert.Equal(t, expectedData, featuresList.Data)
 		})
 	})
