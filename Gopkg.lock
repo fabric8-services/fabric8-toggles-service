@@ -11,7 +11,7 @@
     "internal/strategies",
     "strategy"
   ]
-  revision = "d2686ca24a344473603043e3fe3f1c88e468b121"
+  revision = "bdc28f91bec0e1978a2a86204430c97cd6a06d88"
   source = "https://github.com/xcoulon/unleash-client-go"
 
 [[projects]]
@@ -340,6 +340,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5951d1c494b3aa560a9f4b3f64bdc9e5f6cf32f4254bb39600159362cda68c02"
+  inputs-digest = "cfa9000f0eb581c338cf6b86733732b682deaef8635734f8e75798b56575e30c"
   solver-name = "gps-cdcl"
   solver-version = 1
