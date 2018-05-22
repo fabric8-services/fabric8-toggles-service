@@ -344,4 +344,13 @@ func TestGetFeaturesByStrategy(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("client not ready", func(t *testing.T) {
+		// given
+		ft := featuretoggles.NewClientWithState(mockUnleashClient, false)
+		// when
+		f := ft.GetFeaturesByStrategy(context.Background(), "enableByLevel", user)
+		// then
+		require.Empty(t, f)
+	})
 }
