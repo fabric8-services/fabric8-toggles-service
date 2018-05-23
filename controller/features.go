@@ -102,6 +102,8 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 
 	} else if ctx.Names != nil {
 		features = c.togglesClient.GetFeaturesByName(ctx, ctx.Names, user)
+	} else if ctx.Strategy != nil { // all features with strategy enableByLevel
+		features = c.togglesClient.GetFeaturesByStrategy(ctx, *ctx.Strategy, user)
 	}
 	if features == nil {
 		log.Info(ctx, nil, "missing query params in request")

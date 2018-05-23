@@ -20,6 +20,7 @@ type UnleashClient interface {
 	GetFeature(name string) *unleashapi.Feature
 	IsEnabled(feature string, options ...unleash.FeatureOption) (enabled bool)
 	GetFeaturesByPattern(pattern string) []unleashapi.Feature
+	GetFeaturesByStrategy(strategyName string) []unleashapi.Feature
 	Close() error
 }
 
@@ -28,6 +29,7 @@ type Client interface {
 	GetFeature(ctx context.Context, name string, user *authclient.User) UserFeature
 	GetFeaturesByName(ctx context.Context, names []string, user *authclient.User) []UserFeature
 	GetFeaturesByPattern(ctx context.Context, pattern string, user *authclient.User) []UserFeature
+	GetFeaturesByStrategy(ctx context.Context, strategy string, user *authclient.User) []UserFeature
 	// IsFeatureEnabled(ctx context.Context, feature UserFeature, user *authclient.User) (bool, string)
 	Close() error
 }
@@ -129,6 +131,20 @@ func (c *ClientImpl) GetFeaturesByPattern(ctx context.Context, pattern string, u
 		return result
 	}
 	feats := c.UnleashClient.GetFeaturesByPattern(fmt.Sprintf("^%[1]s$|^%[1]s\\.(.*)", pattern))
+	for _, f := range feats {
+		result = append(result, c.toUserFeature(ctx, f, user))
+	}
+	return result
+}
+
+// GetFeaturesByPattern returns the features whose ID matches the given pattern
+func (c *ClientImpl) GetFeaturesByStrategy(ctx context.Context, strategy string, user *authclient.User) []UserFeature {
+	result := make([]UserFeature, 0)
+	if !c.clientListener.ready {
+		log.Error(ctx, map[string]interface{}{"error": "client is not ready"}, "unable to list features by pattern")
+		return result
+	}
+	feats := c.UnleashClient.GetFeaturesByStrategy(strategy)
 	for _, f := range feats {
 		result = append(result, c.toUserFeature(ctx, f, user))
 	}
