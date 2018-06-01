@@ -49,6 +49,7 @@ const (
 	varDeveloperModeEnabled           = "developer.mode.enabled"
 	varTogglesURL                     = "toggles.url"
 	varAuthURL                        = "auth.url"
+	varUserKey                        = "user.key"
 	varFeaturesCacheControl           = "features.cachecontrol"
 	varAPIServerInsecureSkipTLSVerify = "api.server.insecure.skip.tls.verify"
 	varLogLevel                       = "log.level"
@@ -144,6 +145,11 @@ func (c *Data) IsDeveloperModeEnabled() bool {
 // GetTogglesURL returns Toggle service URL
 func (c *Data) GetTogglesURL() string {
 	return c.v.GetString(varTogglesURL)
+}
+
+// GetUserKey
+func (c *Data) GetUserKey() string {
+	return c.v.GetString(varUserKey)
 }
 
 // APIServerInsecureSkipTLSVerify returns if the server's certificate should be checked for validity. This will make your HTTPS connections insecure.

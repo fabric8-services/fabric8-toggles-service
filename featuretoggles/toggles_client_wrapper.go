@@ -12,6 +12,7 @@ import (
 	unleashcontext "github.com/Unleash/unleash-client-go/context"
 	"github.com/fabric8-services/fabric8-auth/log"
 	authclient "github.com/fabric8-services/fabric8-toggles-service/auth/client"
+	"net/http"
 )
 
 // UnleashClient the interface to the unleash client
@@ -47,6 +48,7 @@ var _ Client = &ClientImpl{}
 type ToggleServiceConfiguration interface {
 	// GetToggleServiceAppName() string
 	GetTogglesURL() string
+	GetUserKey() string
 }
 
 // NewDefaultClient returns a new client to the toggle feature service including the default underlying unleash client initialized
@@ -57,9 +59,11 @@ func NewDefaultClient(serviceName string, config ToggleServiceConfiguration) (Cl
 		unleash.WithInstanceId(os.Getenv("HOSTNAME")),
 		unleash.WithUrl(config.GetTogglesURL()),
 		unleash.WithStrategies(EnableByLevelStrategy{}, EnableByEmailsStrategy{}),
-		unleash.WithMetricsInterval(1*time.Minute),
+		unleash.WithMetricsInterval(1*time.Hour),
+		unleash.WithDisableMetrics(true),
 		unleash.WithRefreshInterval(10*time.Second),
 		unleash.WithListener(&l),
+		unleash.WithCustomHeaders(http.Header{"user-key": []string{config.GetUserKey()}}),
 	)
 	if err != nil {
 		return nil, err
