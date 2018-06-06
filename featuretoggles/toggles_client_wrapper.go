@@ -54,6 +54,8 @@ type ToggleServiceConfiguration interface {
 // NewDefaultClient returns a new client to the toggle feature service including the default underlying unleash client initialized
 func NewDefaultClient(serviceName string, config ToggleServiceConfiguration) (Client, error) {
 	l := UnleashClientListener{ready: false}
+	key := config.GetUserKey()
+	fmt.Println("SECRET_KEY %s", key)
 	unleashclient, err := unleash.NewClient(
 		unleash.WithAppName(serviceName),
 		unleash.WithInstanceId(os.Getenv("HOSTNAME")),
@@ -63,7 +65,7 @@ func NewDefaultClient(serviceName string, config ToggleServiceConfiguration) (Cl
 		unleash.WithDisableMetrics(true),
 		unleash.WithRefreshInterval(10*time.Second),
 		unleash.WithListener(&l),
-		unleash.WithCustomHeaders(http.Header{"user-key": []string{config.GetUserKey()}}),
+		unleash.WithCustomHeaders(http.Header{"user-key": []string{key}}),
 	)
 	if err != nil {
 		return nil, err

@@ -24,6 +24,7 @@ CUR_DIR=$(shell pwd)
 BUILD_DIR = bin
 F8_AUTH_URL ?= https://auth.prod-preview.openshift.io
 F8_TOGGLES_URL ?= "http://toggles:4242/api"
+F8_API_KEY=""
 FABRIC8_MARKER=.fabric8
 FABRIC8_PROJECT=fabric8
 
@@ -168,6 +169,7 @@ generate-goa: deps $(DESIGNS) $(GOAGEN_BIN) deps ## Generate GOA sources. Only n
 
 $(MINIMOCK_BIN):
 	@echo "building the minimock binary..."
+	@echo "building the minimock binary..."
 	@cd $(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock && go build -v minimock.go
 
 .PHONY: generate-minimock
@@ -207,12 +209,12 @@ push-minishift: minishift-login minishift-registry-login image-minishift $(FABRI
 
 .PHONY: deploy-minishift
 deploy-minishift: push-minishift ## deploy toggles server on minishift
-	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-db.yml -o ./minishift/toggles-db.yml
-	kedge apply -f ./minishift/toggles-db.yml
-	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles.yml -o ./minishift/toggles.yml
-	kedge apply -f ./minishift/toggles.yml
-	curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-service.yml -o ./minishift/toggles-service.yml
-	F8_AUTH_URL=$(F8_AUTH_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f ./minishift/toggles-service.yml
+	#curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-db.yml -o toggles-db.yml
+	kedge apply -f toggles-db.yml
+	#curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles.yml -o toggles.yml
+	kedge apply -f toggles.yml
+	#curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-service.yml -o ./minishift/toggles-service.yml
+	F8_AUTH_URL=$(F8_AUTH_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f toggles-service.yml
 
 .PHONY: clean-minishift
 clean-minishift: minishift-login ## removes the fabric8 project on Minishift

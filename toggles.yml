@@ -1,0 +1,34 @@
+name: toggles
+labels:
+  service: toggles
+deployments:
+- containers:
+  - image: "registry.devshift.net/fabric8-services/fabric8-toggles:latest"
+    env:
+    - name: DATABASE_URL
+      value: "postgres://user:password@toggles-db:5432/unleashdb"
+    - name: GITHUB_CLIENT_ID
+      value: "[[ GITHUB_CLIENT_ID: your_client_id ]]"
+    - name: GITHUB_CLIENT_SECRET
+      value: "[[ GITHUB_CLIENT_SECRET: your_secret ]]"
+    - name: TOGGLES_CONTEXT
+      value: "[[ TOGGLES_CONTEXT: ]]"
+    - name: GITHUB_CALLBACK_URL
+      value: "[[ GITHUB_CALLBACK_URL: your_callback_url ]]"
+    - name: GITHUB_ORG
+      value: "[[ GITHUB_ORG: rhdt-dev ]]"
+    - name: GITHUB_TEAM
+      value: "[[ GITHUB_TEAM: toggles-admin-preprod ]]"
+    - name: DEV_MODE
+      value: "[[ DEV_MODE: false ]]"
+services:
+- name: toggles
+  type: NodePort
+  ports:
+    - port: 4242
+      nodePort: 31200
+# routes:	
+# - name: toggles	
+#   to:	
+#     kind: Service	
+#     name: toggles
