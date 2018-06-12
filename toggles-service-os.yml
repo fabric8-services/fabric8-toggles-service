@@ -1,0 +1,101 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: auth
+objects:
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    annotations:
+    labels:
+      service: toggles-service
+    name: toggles-service
+  spec:
+    replicas: 1
+    selector:
+      service: toggles-service
+    template:
+      metadata:
+        labels:
+          service: toggles-service
+      spec:
+        containers:
+        - env:
+          - name: F8_AUTH_URL
+            value: ${F8_AUTH_URL}
+          - name: F8_TOGGLES_URL
+            value: ${F8_TOGGLES_URL}
+          - name: F8_USER_KEY
+            value: ${F8_USER_KEY}
+          image: 172.30.1.1:5000/fabric8/fabric8-toggles-service:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/status
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: toggles-service
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/status
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: 1Gi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    triggers:
+    - type: ConfigChange
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: toggles-service
+    labels:
+      service: toggles-service
+  spec:
+    ports:
+      - name: "80"
+        protocol: TCP
+        port: 80
+        targetPort: 8080
+    selector:
+      service: toggles-service
+    type: ClusterIP
+    sessionAffinity: null
+- kind: Route
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: toggles-service
+    name: toggles-service
+  spec:
+    host: ""
+    to:
+      kind: Service
+      name: toggles-service
+      weight: null
+  status:
+    ingress: null
+parameters:
+- name: F8_AUTH_URL
+- name: F8_TOGGLES_URL
+- name: F8_USER_KEY

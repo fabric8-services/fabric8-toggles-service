@@ -83,6 +83,7 @@ func WithTogglesClient(client featuretoggles.Client) FeaturesControllerOption {
 func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 
 	log.Error(ctx, nil, "LOG::GETTING.... List")
+	log.Error(ctx, nil, "LOG::GETTING.... List3")
 
 	var user *authclient.User
 	jwtToken := goajwt.ContextJWT(ctx)

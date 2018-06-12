@@ -210,11 +210,11 @@ push-minishift: minishift-login minishift-registry-login image-minishift $(FABRI
 .PHONY: deploy-minishift
 deploy-minishift: push-minishift ## deploy toggles server on minishift
 	#curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-db.yml -o toggles-db.yml
-	kedge apply -f toggles-db.yml
+	#kedge apply -f toggles-db.yml
 	#curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles.yml -o toggles.yml
-	kedge apply -f toggles.yml
+	#kedge apply -f toggles.yml
 	#curl https://raw.githubusercontent.com/xcoulon/fabric8-minishift/master/toggles-service.yml -o ./minishift/toggles-service.yml
-	F8_AUTH_URL=$(F8_AUTH_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) kedge apply -f toggles-service.yml
+	oc process -f toggles-service-os.yml -p F8_AUTH_URL=$(F8_AUTH_URL) F8_TOGGLES_URL=$(F8_TOGGLES_URL) F8_USER_KEY=$(F8_USER_KEY) | oc apply -f -
 
 .PHONY: clean-minishift
 clean-minishift: minishift-login ## removes the fabric8 project on Minishift

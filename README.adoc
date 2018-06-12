@@ -150,7 +150,7 @@ $ curl http://localhost:8080/api/features\?group\=Analyze -H "Authorization: Bea
 * Ready to go...
 ** Run the server with F8_TOGGLES_URL pointing to 3scale public API.
 ```
-F8_TOGGLES_URL=https://api-2445582552398.staging.gw.apicast.io:443/toggles/api F8_USER_KEY="XXXXX" F8_AUTH_URL=https://auth.prod-preview.openshift.io make deploy-minishift
+F8_TOGGLES_URL=https://api-2445582552398.staging.gw.apicast.io:443/toggles/api F8_USER_KEY="XXXXX" F8_AUTH_URL=https://auth.openshift.io make deploy-minishift
 ```
 
 ** Curl
