@@ -1,5 +1,5 @@
 PROJECT_NAME = fabric8-toggles-service
-REGISTRY_URI = push.registry.devshift.net
+REGISTRY_URI = quay.io
 REGISTRY_NS = fabric8-services
 REGISTRY_IMAGE = ${PROJECT_NAME}
 

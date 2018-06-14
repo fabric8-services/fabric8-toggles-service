@@ -12,8 +12,10 @@ set -e
 #   None
 ###################################################################################
 function setup_build_environment() {
-    [ -f jenkins-env ] && cat jenkins-env | grep -e GIT -e DEVSHIFT -e JOB_NAME > inherit-env
-    [ -f inherit-env ] && . inherit-env
+    if [ -e "jenkins-env.json" ]; then
+        eval "$(./env-toolkit load -f jenkins-env.json --regex ^GIT ^DEVSHIFT ^QUAY)"
+        eval "$(./env-toolkit load -f jenkins-env.json JOB_NAME)"
+    fi
 
     # We need to disable selinux for now, XXX
     /usr/sbin/setenforce 0 || :
@@ -59,7 +61,7 @@ setup_workspace
 
 cd $GOPATH/src/github.com/fabric8-services/fabric8-toggles-service
 echo "HEAD of repository `git rev-parse --short HEAD`"
-make login REGISTRY_USER=${DEVSHIFT_USERNAME} REGISTRY_PASSWORD=${DEVSHIFT_PASSWORD}
+make login REGISTRY_USER=${QUAY_USERNAME} REGISTRY_PASSWORD=${QUAY_PASSWORD}
 make all
 
 bash <(curl -s https://codecov.io/bash) -f coverage.txt -t cbdff99f-9158-4128-8dec-ef6afb6d78ab
