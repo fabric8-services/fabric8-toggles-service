@@ -87,6 +87,6 @@ objects:
     sessionAffinity: null
 parameters:
 - name: IMAGE
-  value: registry.devshift.net/fabric8-services/fabric8-toggles-service
+  value: quay.io/openshiftio/rhel-fabric8-services-fabric8-toggles-service
 - name: IMAGE_TAG
   value: latest

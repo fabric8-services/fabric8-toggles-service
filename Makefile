@@ -1,13 +1,13 @@
 PROJECT_NAME = fabric8-toggles-service
-REGISTRY_URI = push.registry.devshift.net
+REGISTRY_URI = quay.io
 REGISTRY_NS = fabric8-services
 REGISTRY_IMAGE = ${PROJECT_NAME}
 
 ifeq ($(TARGET),rhel)
-	REGISTRY_URL := ${REGISTRY_URI}/osio-prod/${REGISTRY_NS}/${REGISTRY_IMAGE}
+	REGISTRY_URL := ${REGISTRY_URI}/openshiftio/rhel-${REGISTRY_NS}-${REGISTRY_IMAGE}
 	DOCKERFILE := Dockerfile.rhel
 else
-	REGISTRY_URL := ${REGISTRY_URI}/${REGISTRY_NS}/${REGISTRY_IMAGE}
+	REGISTRY_URL := ${REGISTRY_URI}/openshiftio/${REGISTRY_NS}-${REGISTRY_IMAGE}
 	DOCKERFILE := Dockerfile
 endif
 
