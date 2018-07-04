@@ -1,0 +1,24 @@
+name: toggles-service
+labels:
+  service: toggles-service
+deployments:
+- containers:
+  - image: 172.30.1.1:5000/fabric8/fabric8-toggles-service:latest
+    env:
+    - name: F8_AUTH_URL
+      value: "[[ F8_AUTH_URL: http://auth:8089]]"
+    - name: F8_TOGGLES_URL
+      value: "[[ F8_TOGGLES_URL: http://toggles:4242/api ]]"
+    - name: F8_USER_KEY
+      value: "[[ F8_USER_KEY: e80fd26573e4886e016a5eef29f2aef8 ]]"
+services:
+- name: toggles-service
+  type: NodePort
+  ports:
+    - port: 8080
+      nodePort: 31600
+routes:	
+- name: toggles-service	
+  to:	
+    kind: Service	
+    name: toggles-service

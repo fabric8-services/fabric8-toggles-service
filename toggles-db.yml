@@ -1,0 +1,25 @@
+name: toggles-db
+labels:
+  service: toggles
+deployments:
+- containers:
+  - image: registry.centos.org/postgresql/postgresql:9.6
+    env:
+    - name: POSTGRESQL_USER
+      value: user
+    - name: POSTGRESQL_PASSWORD
+      value: password
+    - name: POSTGRESQL_DATABASE
+      value: unleashdb
+    volumeMounts:
+    - name: toggles-db-claim
+      mountPath: /var/lib/pgsql/data
+volumeClaims:
+- name: toggles-db-claim
+  size: 100M
+services:
+- name: toggles-db
+  type: NodePort
+  ports:
+  - port: 5432
+    nodePort: 31210

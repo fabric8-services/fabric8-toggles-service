@@ -137,6 +137,23 @@ $ curl http://localhost:8080/api/features?names\=Planner
 * For logged-in user
 
 ```
-$ export TOKEN=YOUT_TOKEN
+$ export TOKEN=YOUR_TOKEN
 $ curl http://localhost:8080/api/features\?group\=Analyze -H "Authorization: Bearer $TOKEN"
+```
+
+=== 3scale
+
+* Step 1: Register to https://www.3scale.net/signup/ (90-days trial - limited!)
+* Step 2: Import your API in 3scaleDashboard (link:https://corinne-admin.3scale.net/apiconfig/services/2555417758260/integration/edit[corinne-admin])
+* Step 3: APICast hosted meaning the public 3scale URl point to a hosted location (for trial only): https://api-2445582552398.staging.gw.apicast.io:443/toggles/api
+* Step 4: Choose API-key (the other options are: app_id/app_key or oauth2), add it to f8-toggles-service
+* Ready to go...
+** Run the server with F8_TOGGLES_URL pointing to 3scale public API.
+```
+F8_TOGGLES_URL=https://api-2445582552398.staging.gw.apicast.io:443/toggles/api F8_USER_KEY="XXXXX" F8_AUTH_URL=https://auth.openshift.io make deploy-minishift
+```
+
+** Curl
+```
+curl http://localhost:8080/api/features\?group\=Analyze -H "Authorization: Bearer $TOKEN"
 ```

@@ -81,6 +81,10 @@ func WithTogglesClient(client featuretoggles.Client) FeaturesControllerOption {
 
 // List runs the list action.
 func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
+
+	log.Error(ctx, nil, "LOG::GETTING.... List")
+	log.Error(ctx, nil, "LOG::GETTING.... List3")
+
 	var user *authclient.User
 	jwtToken := goajwt.ContextJWT(ctx)
 	if jwtToken != nil {
@@ -99,7 +103,6 @@ func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
 	// look-up by pattern
 	if ctx.Group != nil {
 		features = c.togglesClient.GetFeaturesByPattern(ctx, *ctx.Group, user)
-
 	} else if ctx.Names != nil {
 		features = c.togglesClient.GetFeaturesByName(ctx, ctx.Names, user)
 	} else if ctx.Strategy != nil { // all features with strategy enableByLevel
