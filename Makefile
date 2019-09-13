@@ -106,7 +106,7 @@ $(VENDOR_DIR):
 .PHONY: test
 test: deps ## Runs unit tests without code coverage
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	go test -v $(TEST_PACKAGES)
+	go test -v -vet off $(TEST_PACKAGES)
 
 .PHONY: test-coverage
 test-coverage: deps tmp ## Runs unit tests with coverage support
@@ -114,7 +114,7 @@ test-coverage: deps tmp ## Runs unit tests with coverage support
 	@echo "running tests with code coverage"
 	@for d in `go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)`; do \
 		echo "running tests with code coverage in pkg $$d" ; \
-		go test -coverprofile=./tmp/profile.out -covermode=atomic $$d ; \
+		go test -vet off -coverprofile=./tmp/profile.out -covermode=atomic $$d ; \
 		if [ -e ./tmp/profile.out ]; \
 			then \
 			cat ./tmp/profile.out >> coverage.txt && rm ./tmp/profile.out ; \
