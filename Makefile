@@ -93,7 +93,7 @@ push-openshift: image ## Pushes the container image to the OpenShift online regi
 
 tools.timestamp:
 	go get -u github.com/golang/dep/cmd/dep
-	go get -u github.com/golang/lint/golint
+	go get -u golang.org/x/lint/golint
 	@touch tools.timestamp
 
 deps: tools.timestamp $(VENDOR_DIR) ## Runs dep to vendor project dependencies
