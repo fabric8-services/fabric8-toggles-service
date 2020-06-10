@@ -6,7 +6,6 @@ objects:
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
-    annotations:
     labels:
       service: f8toggles-service
     name: f8toggles-service
